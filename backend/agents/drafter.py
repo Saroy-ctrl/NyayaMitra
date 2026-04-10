@@ -39,21 +39,21 @@ _DOC_TYPE_INSTRUCTIONS: dict[str, str] = {
 - Relief sought: register FIR and investigate
 - Declaration by complainant
 - Signature block: Name, Contact Number, Date
-- Include Hindi: "प्रथम सूचना रिपोर्ट" as subtitle
+- Do not include any Hindi text or subtitles
 - For any information not provided by the user, use [bracketed placeholder] text so complainant can fill it in -- do NOT fabricate details or skip sections entirely""",
 
     "legal_notice": """Format as Legal Notice with:
 - From: [Complainant name, address]
 - To: [Respondent name, address]
 - Date
-- Subject (in English and Hindi)
+- Subject (in English only)
 - Opening: "LEGAL NOTICE"
 - Facts in numbered paragraphs
-- Legal basis: cite the provided sections
+- Legal basis: cite only the provided sections that directly apply
 - Demand/Relief with specific deadline (15 days)
 - Consequence of non-compliance
 - Closing with advocate's signature block
-- Include Hindi: "कानूनी नोटिस" as subtitle""",
+- No Hindi text anywhere""",
 
     "consumer_complaint": """Format as Consumer Complaint to District Consumer Disputes Redressal Commission with:
 - Forum name and address
@@ -66,7 +66,7 @@ _DOC_TYPE_INSTRUCTIONS: dict[str, str] = {
 - Relief claimed (compensation amount, replacement, refund)
 - Prayer/Conclusion
 - Declaration
-- Include Hindi: "उपभोक्ता शिकायत" as subtitle""",
+- No Hindi text anywhere""",
 
     "cheque_bounce": """Format as Cheque Bounce Legal Notice under NI Act Section 138 with:
 - From: [Payee/Complainant]
@@ -78,7 +78,7 @@ _DOC_TYPE_INSTRUCTIONS: dict[str, str] = {
 - Date of receipt of memo of dishonour
 - Demand: pay within 15 days of receipt
 - Warning: criminal complaint u/s 138 NI Act if unpaid
-- Include Hindi: "चेक बाउंस नोटिस" as subtitle""",
+- No Hindi text anywhere""",
 
     "tenant_eviction": """Format as Tenant Eviction Notice with:
 - From: [Landlord/Lessor]
@@ -90,25 +90,26 @@ _DOC_TYPE_INSTRUCTIONS: dict[str, str] = {
 - Facts supporting grounds
 - Demand: vacate within 30 days (or as per applicable notice period)
 - Warning: legal proceedings if not vacated
-- Include Hindi: "मकान खाली करने की नोटिस" as subtitle""",
+- No Hindi text anywhere""",
 }
 
-_SYSTEM_PROMPT_TEMPLATE = """You are an expert Indian legal document drafter. Generate a formal, complete legal document in English with key phrases in Hindi where appropriate.
+_SYSTEM_PROMPT_TEMPLATE = """You are an expert Indian legal document drafter. Generate a formal, complete legal document entirely in English. No Hindi text anywhere in the document.
 
 Document type: {doc_type_label}
 Legal sections to cite: {formatted_sections}
 
 Rules:
+- English only — do NOT include any Hindi text, Devanagari script, or bilingual phrases anywhere in the document
 - Use formal legal language
 - Cite BNS/BNSS sections (NOT IPC/CrPC)
 - Include all required sections for this document type
 - Use Indian legal document conventions
-- Add Hindi translation of the subject line and key demands
-- Never fabricate section numbers -- only use those provided
-- Use the exact incident_time from case details if provided -- never invent a time
+- Never fabricate section numbers — only cite sections from the provided list
+- Only cite a section if it genuinely and directly applies to this specific case — if a section does not clearly fit, omit it entirely. Fewer accurate sections is better than more inaccurate ones
+- Use the exact incident_time from case details if provided — never invent a time
 - Use the complainant's contact info from parties[].contact if available
 - Return the document as plain text (not JSON), ready to be printed
-- When citing legal sections, use ONLY this format: "Section X BNS 2023: [Section Title]" — do NOT add any explanation, rationale, or commentary about why the section applies. No phrases like "implies possible gang involvement", "bears similarity to", "as the offence can be tried summarily", or any other explanatory text. Section number and title only.
+- When citing legal sections, use ONLY this format: "Section X BNS 2023: [Section Title]" — no explanation, rationale, or commentary after the title
 """
 
 

@@ -25,8 +25,9 @@ Return ONLY valid JSON array:
 ]
 
 Rules:
-- Include only sections that genuinely apply
-- Maximum 6 sections
+- Include ONLY sections that directly and clearly apply to this specific case — if unsure, omit
+- Quality over quantity: 1-2 accurate sections is better than 6 vague ones
+- Hard maximum: 4 sections
 - Prefer BNS 2023 over IPC 1860, BNSS 2023 over CrPC 1973
 - Never cite IPC or CrPC sections -- always use BNS/BNSS/BSA equivalents
 - Exception: Negotiable Instruments Act 1881 Section 138 (cheque bounce) is unchanged -- cite as-is
@@ -49,8 +50,9 @@ Return ONLY valid JSON array:
 ]
 
 Rules:
-- Include only sections that genuinely apply to the SUBSTANTIVE OFFENCE (the crime itself)
-- Maximum 6 sections
+- Include ONLY sections that directly and clearly apply to this specific crime — if unsure, omit
+- Quality over quantity: 1-2 accurate sections is better than 6 vague ones
+- Hard maximum: 4 sections
 - For FIR documents: use ONLY Bharatiya Nyaya Sanhita (BNS) 2023 sections — BNSS (Bharatiya Nagarik Suraksha Sanhita) governs police procedure and must NOT be cited in an FIR for the offence
 - Never cite IPC or CrPC sections — always use BNS equivalents
 - If a section identifier in the retrieved list looks like 'chunk_N' (a raw chunk ID, not a real section number), examine the text content to extract the actual section number. Look for patterns like 'Section N', 'N.' at the start, or 'Chapter N'. Output only real section numbers (e.g. '64', '138', '12'). NEVER output a chunk identifier as a section number.
