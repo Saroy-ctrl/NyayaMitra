@@ -1,0 +1,41 @@
+# Place Indian legal act PDF files here before running seed_chroma.py
+#
+# ⚠️  IMPORTANT: Use the NEW criminal codes (effective 1 July 2024).
+#     The IPC and CrPC have been replaced. Download from indiacode.nic.in
+#
+# Required PDF files:
+#
+#   bns.pdf
+#     → Bharatiya Nyaya Sanhita (BNS), 2023
+#     → REPLACES Indian Penal Code (IPC), 1860
+#     → https://indiacode.nic.in/handle/123456789/20062
+#
+#   bnss.pdf
+#     → Bharatiya Nagarik Suraksha Sanhita (BNSS), 2023
+#     → REPLACES Code of Criminal Procedure (CrPC), 1973
+#     → https://indiacode.nic.in/handle/123456789/20062
+#
+#   bsa.pdf
+#     → Bharatiya Sakshya Adhiniyam (BSA), 2023
+#     → REPLACES Indian Evidence Act, 1872
+#     → https://indiacode.nic.in/handle/123456789/20062
+#
+#   consumer_protection_act.pdf
+#     → Consumer Protection Act, 2019 (UNCHANGED)
+#     → https://indiacode.nic.in/handle/123456789/14784
+#
+#   negotiable_instruments_act.pdf
+#     → Negotiable Instruments Act, 1881 — Section 138 (UNCHANGED)
+#     → https://indiacode.nic.in/handle/123456789/1420
+#
+#   transfer_of_property_act.pdf
+#     → Transfer of Property Act, 1882 (UNCHANGED)
+#     → https://indiacode.nic.in/handle/123456789/1396
+#
+#   rent_control_act.pdf
+#     → Delhi Rent Control Act, 1958 (state-level, UNCHANGED)
+#     → https://delhigovt.nic.in
+#
+# NOTE: seed_chroma.py supports both .pdf and .txt formats.
+#       Digital PDFs (text-selectable) work best — scanned PDFs may yield garbled text.
+#       Do NOT place IPC or CrPC files here; those laws are superseded.

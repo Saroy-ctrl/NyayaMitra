@@ -1,0 +1,26 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python -c ':*)",
+      "Bash(python -c \"import chromadb; print\\(chromadb.__version__\\); print\\(type\\(chromadb.PersistentClient\\)\\)\")",
+      "Bash(python seed_chroma.py)",
+      "Bash(npm run:*)",
+      "Bash(npx playwright:*)",
+      "Read(//tmp/**)",
+      "Skill(update-config)",
+      "Bash(npx @playwright/mcp --version)",
+      "Bash(claude mcp:*)",
+      "Bash(curl -s http://localhost:5173)",
+      "Bash(node playwright-verify.js)",
+      "Bash(node playwright-verify.cjs)",
+      "mcp__magic__21st_magic_component_inspiration",
+      "mcp__magic__21st_magic_component_builder",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:5173/)",
+      "Bash(node tests/animations.spec.cjs)",
+      "Bash(npx vite:*)",
+      "Bash(node inspect_ui.mjs)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:5173)",
+      "Bash(node screenshot_pages.mjs)"
+    ]
+  }
+}

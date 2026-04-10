@@ -1,0 +1,42 @@
+[
+  {
+    "doc_type": "fir",
+    "title_en": "First Information Report",
+    "title_hi": "प्रथम सूचना रिपोर्ट",
+    "required_fields": ["complainant_name", "complainant_address", "accused_details", "incident_date", "incident_location", "incident_description", "sections_invoked"],
+    "structure": ["header", "complainant_details", "accused_details", "incident_description", "sections_invoked", "witnesses", "relief_sought", "declaration"],
+    "format_notes": "File at local police station. Reference BNSS Section 173."
+  },
+  {
+    "doc_type": "legal_notice",
+    "title_en": "Legal Notice",
+    "title_hi": "कानूनी नोटिस",
+    "required_fields": ["sender_name", "sender_address", "recipient_name", "recipient_address", "subject", "facts", "legal_basis", "demand", "deadline"],
+    "structure": ["header", "from_to", "subject", "facts", "legal_basis", "demand", "deadline", "consequences", "signature"],
+    "format_notes": "Send by registered post AD. Keep acknowledgement copy."
+  },
+  {
+    "doc_type": "consumer_complaint",
+    "title_en": "Consumer Complaint",
+    "title_hi": "उपभोक्ता शिकायत",
+    "required_fields": ["complainant_name", "opposite_party", "product_service", "purchase_date", "deficiency", "relief_claimed"],
+    "structure": ["forum_address", "complainant_details", "opposite_party_details", "jurisdiction", "facts", "cause_of_action", "legal_provisions", "relief", "prayer", "declaration"],
+    "format_notes": "File at District Consumer Commission for claims up to 1 crore."
+  },
+  {
+    "doc_type": "cheque_bounce",
+    "title_en": "Cheque Dishonour Notice",
+    "title_hi": "चेक अनादर नोटिस",
+    "required_fields": ["payee_name", "drawer_name", "cheque_number", "cheque_date", "bank_name", "amount", "dishonour_date", "demand_amount"],
+    "structure": ["header", "from_to", "cheque_details", "dishonour_facts", "demand", "deadline", "warning", "signature"],
+    "format_notes": "Send within 30 days of dishonour memo. Drawer has 15 days to pay after notice."
+  },
+  {
+    "doc_type": "tenant_eviction",
+    "title_en": "Tenant Eviction Notice",
+    "title_hi": "मकान खाली करने की नोटिस",
+    "required_fields": ["landlord_name", "tenant_name", "property_address", "ground_for_eviction", "notice_period"],
+    "structure": ["header", "from_to", "property_details", "grounds", "supporting_facts", "demand", "deadline", "warning", "signature"],
+    "format_notes": "Notice period: 15 days (month-to-month lease) per TPA Section 106."
+  }
+]
