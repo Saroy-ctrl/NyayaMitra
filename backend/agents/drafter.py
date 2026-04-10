@@ -28,7 +28,7 @@ _DOC_TYPE_LABELS: dict[str, str] = {
 _DOC_TYPE_INSTRUCTIONS: dict[str, str] = {
     "fir": """Format as First Information Report with:
 - Police Station, District, State (use location from case)
-- Date of complaint (use today's date); Time of complaint
+- Date of complaint (use today's date); Time of complaint (use the current time — do NOT leave as placeholder)
 - Complainant details: Name, Address (ask user if not provided), Contact Number (use parties[].contact if available, else write [Complainant's Contact Number])
 - Accused details: Name (Unknown if not identified), physical description if mentioned (approximate age, height, build, clothing colour, any distinguishing features), last seen direction if mentioned
 - Incident description: exact date, exact time (use incident_time if provided, else [Time of the incident]), exact location, detailed narrative of what happened
@@ -108,6 +108,7 @@ Rules:
 - Use the exact incident_time from case details if provided -- never invent a time
 - Use the complainant's contact info from parties[].contact if available
 - Return the document as plain text (not JSON), ready to be printed
+- When citing legal sections, use ONLY this format: "Section X BNS 2023: [Section Title]" — do NOT add any explanation, rationale, or commentary about why the section applies. No phrases like "implies possible gang involvement", "bears similarity to", "as the offence can be tried summarily", or any other explanatory text. Section number and title only.
 """
 
 
@@ -133,8 +134,7 @@ def _format_sections(legal_sections: list[dict]) -> str:
         act = s.get("act", "")
         section = s.get("section", "")
         title = s.get("title", "")
-        reason = s.get("reason", "")
-        lines.append(f"- {act}, Section {section}: {title} ({reason})")
+        lines.append(f"- Section {section} {act}: {title}")
     return "\n".join(lines)
 
 
@@ -170,7 +170,14 @@ async def run_drafter(
 
         doc_instructions = _DOC_TYPE_INSTRUCTIONS.get(doc_type, "")
 
+        from datetime import datetime
+        now = datetime.now()
+        current_date = f"{now.day} {now.strftime('%B %Y')}"
+        current_time = now.strftime("%I:%M %p")
+
         user_message = (
+            f"Today's date: {current_date}\n"
+            f"Current time (time of complaint): {current_time}\n\n"
             f"Case details:\n{json.dumps(incident_json, ensure_ascii=False, indent=2)}\n\n"
             f"Document formatting requirements:\n{doc_instructions}\n\n"
             f"Generate the complete {doc_type} document now."

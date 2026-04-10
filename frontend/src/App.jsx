@@ -61,14 +61,15 @@ export default function App() {
     }
   }, [isComplete, view]);
 
-  async function handleCaseSubmit(description) {
-    const sid = generateSessionId();
+  async function handleCaseSubmit(description, extractedData) {
+    /* sessionId is pre-generated on SELECT_DOC so CaseInput can use it for /api/chat/intake */
+    const sid = sessionId ?? generateSessionId();
     setSessionId(sid);
     setPipelineError(null);
     setIsLoading(true);
 
     try {
-      await startPipeline(selectedDoc, description, sid);
+      await startPipeline(selectedDoc, description || "case details collected via chat", sid, extractedData);
       setPipelineStarted(true);
       window.scrollTo(0, 0);
       setView(VIEWS.PROCESSING);
@@ -85,6 +86,7 @@ export default function App() {
 
   function handleDocTypeSelect(type) {
     setSelectedDoc(type);
+    setSessionId(generateSessionId());
     setDemoText(null);
     window.scrollTo(0, 0);
     setView(VIEWS.INPUT_CASE);
@@ -92,6 +94,7 @@ export default function App() {
 
   function handleDemoClick() {
     setSelectedDoc(DEMO_DOC_TYPE);
+    setSessionId(generateSessionId());
     setDemoText(DEMO_DESCRIPTION);
     window.scrollTo(0, 0);
     setView(VIEWS.INPUT_CASE);
@@ -153,6 +156,7 @@ export default function App() {
             <div className="space-y-4">
               <CaseInput
                 docType={selectedDoc}
+                sessionId={sessionId}
                 onSubmit={handleCaseSubmit}
                 onBack={() => { window.scrollTo(0, 0); setView(VIEWS.SELECT_DOC); }}
                 isLoading={isLoading}

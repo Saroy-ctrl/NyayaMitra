@@ -12,7 +12,7 @@ from services.sse import push_event
 
 logger = logging.getLogger(__name__)
 
-_SYSTEM_PROMPT = """You are an Indian law expert. Given a legal case and relevant law sections, select the most applicable sections and explain why each applies.
+_SYSTEM_PROMPT_DEFAULT = """You are an Indian law expert. Given a legal case and relevant law sections, select the most applicable sections and explain why each applies.
 
 Return ONLY valid JSON array:
 [
@@ -36,6 +36,35 @@ Rules:
 - Return ONLY JSON array, no explanation
 """
 
+_SYSTEM_PROMPT_FIR = """You are an Indian law expert. Given an FIR case and relevant law sections, select the most applicable substantive offence sections.
+
+Return ONLY valid JSON array:
+[
+  {
+    "section": "section number",
+    "act": "full act name",
+    "title": "section title or description",
+    "reason": "one sentence why this section applies to the case"
+  }
+]
+
+Rules:
+- Include only sections that genuinely apply to the SUBSTANTIVE OFFENCE (the crime itself)
+- Maximum 6 sections
+- For FIR documents: use ONLY Bharatiya Nyaya Sanhita (BNS) 2023 sections — BNSS (Bharatiya Nagarik Suraksha Sanhita) governs police procedure and must NOT be cited in an FIR for the offence
+- Never cite IPC or CrPC sections — always use BNS equivalents
+- If a section identifier in the retrieved list looks like 'chunk_N' (a raw chunk ID, not a real section number), examine the text content to extract the actual section number. Look for patterns like 'Section N', 'N.' at the start, or 'Chapter N'. Output only real section numbers (e.g. '64', '138', '12'). NEVER output a chunk identifier as a section number.
+- If you cannot identify a real section number from the text, skip that entry entirely.
+- Return ONLY JSON array, no explanation
+
+CRITICAL SECTION ACCURACY RULES — apply these before selecting any section:
+- BNS Section 304 (Snatching): ONLY cite if the theft involved sudden force or grabbing directly from a person's hands/body. Do NOT cite for unattended property theft (parked vehicle, empty shop, etc.).
+- BNS Section 305 (Theft in dwelling house / means of transportation / place of worship): ONLY cite if theft occurred inside a home, inside a vehicle being used for travel, or inside a place of worship. A public parking lot is NOT a dwelling house or means of transportation.
+- BNS Section 317 (Stolen property): This section criminalises RECEIVING or retaining stolen property. Do NOT cite this for the victim — it applies to the receiver/fence, not the complainant.
+- BNS Section 303 (Theft): The correct base section for all simple theft cases including vehicle theft from a parking lot.
+- BNS Section 309 (Robbery): Only cite if there was violence or threat of violence during the theft.
+"""
+
 
 def _strip_code_fences(raw: str) -> str:
     """Remove markdown code fences if present."""
@@ -50,18 +79,26 @@ def _strip_code_fences(raw: str) -> str:
     return raw.strip()
 
 
-async def run_research(incident_json: dict[str, Any], session_id: str) -> list[dict]:
+async def run_research(incident_json: dict[str, Any], session_id: str, doc_type: str = "") -> list[dict]:
     """
     Retrieve and rank applicable Indian law sections for the case.
 
     Args:
         incident_json: Output from IntakeAgent.
         session_id:    SSE session identifier.
+        doc_type:      Document type — used to apply FIR-specific constraints.
 
     Returns:
         List of section dicts: [{section, act, title, reason}, ...]
     """
     await push_event(session_id, "research", "running", {"message": "Searching legal corpus..."})
+
+    # Resolve doc_type from incident_json if not explicitly passed
+    if not doc_type:
+        doc_type = incident_json.get("doc_type_confirmed", "")
+
+    is_fir = doc_type == "fir"
+    system_prompt = _SYSTEM_PROMPT_FIR if is_fir else _SYSTEM_PROMPT_DEFAULT
 
     try:
         # Build query components from incident_json
@@ -71,8 +108,11 @@ async def run_research(incident_json: dict[str, Any], session_id: str) -> list[d
         description_parts = list(key_claims) + list(sequence)
         description = " ".join(str(p) for p in description_parts)
 
+        # For FIR: filter ChromaDB to BNS 2023 sections only (substantive offence law)
+        act_filter = {"act": "Bharatiya Nyaya Sanhita 2023"} if is_fir else None
+
         # Query ChromaDB
-        chunks = await query_laws(incident_type, description, top_k=10)
+        chunks = await query_laws(incident_type, description, top_k=10, where=act_filter)
 
         if not chunks:
             logger.warning("No ChromaDB results for session %s", session_id[:8])
@@ -103,7 +143,7 @@ async def run_research(incident_json: dict[str, Any], session_id: str) -> list[d
             f"Select the most applicable sections."
         )
 
-        raw = await call_groq(_SYSTEM_PROMPT, user_message, max_tokens=600)
+        raw = await call_groq(system_prompt, user_message, max_tokens=600)
         cleaned = _strip_code_fences(raw)
         sections: list[dict] = json.loads(cleaned)
 

@@ -24,7 +24,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from sse_starlette.sse import EventSourceResponse
 
-from schemas import PipelineRequest
+from schemas import ChatIntakeRequest, ChatIntakeResponse, PipelineRequest
 from services.sse import close_stream, create_sse_generator, push_event
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
@@ -92,7 +92,7 @@ VALID_DOC_TYPES = {
 # ---------------------------------------------------------------------------
 # Pipeline orchestration (background task)
 # ---------------------------------------------------------------------------
-async def run_pipeline(doc_type: str, description: str, session_id: str) -> None:
+async def run_pipeline(doc_type: str, description: str, session_id: str, extracted_data: dict | None = None) -> None:
     """
     Execute the 4-agent pipeline sequentially, pushing SSE events at each step.
 
@@ -110,16 +110,34 @@ async def run_pipeline(doc_type: str, description: str, session_id: str) -> None
     """
     try:
         # ------------------------------------------------------------------
-        # Agent 1: Intake -- extract structured case data from raw description
+        # Agent 1: Intake -- use pre-collected data or extract from description
         # ------------------------------------------------------------------
         from agents.intake import run_intake
-        intake_result = await run_intake(description, doc_type, session_id)
+        if extracted_data and len(extracted_data) > 2:
+            # Conversational intake already collected structured data — use it directly
+            intake_result = extracted_data
+            intake_result.setdefault("doc_type_confirmed", doc_type)
+            await push_event(session_id, "intake", "complete", {"summary": intake_result.get("summary", "Case details collected via chat")})
+        else:
+            intake_result = await run_intake(description, doc_type, session_id)
+
+        # ------------------------------------------------------------------
+        # Clarification check -- surface anomaly questions before continuing
+        # ------------------------------------------------------------------
+        clarification = intake_result.get("clarification_needed")
+        if clarification:
+            await push_event(
+                session_id,
+                "intake",
+                "clarification_needed",
+                {"question": clarification},
+            )
 
         # ------------------------------------------------------------------
         # Agent 2: Legal Research -- RAG over Indian legal corpus
         # ------------------------------------------------------------------
         from agents.research import run_research
-        research_result = await run_research(intake_result, session_id)
+        research_result = await run_research(intake_result, session_id, doc_type=doc_type)
 
         # ------------------------------------------------------------------
         # Agent 3: Drafter -- generate bilingual formal legal document
@@ -201,7 +219,7 @@ async def start_pipeline(req: PipelineRequest, background_tasks: BackgroundTasks
             ),
         )
 
-    background_tasks.add_task(run_pipeline, req.doc_type, req.description, req.session_id)
+    background_tasks.add_task(run_pipeline, req.doc_type, req.description, req.session_id, req.extracted_data)
 
     return {
         "status": "started",
@@ -238,6 +256,38 @@ async def download_pdf(session_id: str):
         path=str(pdf_path),
         media_type="application/pdf",
         filename=f"NyayaMitra_{session_id[:8]}.pdf",
+    )
+
+
+@app.post("/api/chat/intake", response_model=ChatIntakeResponse)
+async def conversational_intake(req: ChatIntakeRequest):
+    """
+    Multi-turn conversational intake endpoint.
+
+    Accepts the full conversation history and returns the agent's next reply
+    plus the latest extracted data and completion status.
+    """
+    if req.doc_type not in VALID_DOC_TYPES:
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                f"Invalid doc_type '{req.doc_type}'. "
+                f"Must be one of: {sorted(VALID_DOC_TYPES)}"
+            ),
+        )
+
+    from agents.intake import chat_intake
+
+    # Convert Pydantic ChatMessage objects to plain dicts for the agent
+    messages_raw = [{"role": m.role, "content": m.content} for m in req.messages]
+
+    result = await chat_intake(req.doc_type, messages_raw, lang=req.lang)
+
+    return ChatIntakeResponse(
+        agent_reply=result["agent_reply"],
+        is_complete=result["is_complete"],
+        extracted_data=result["extracted_data"],
+        missing_fields=result["missing_fields"],
     )
 
 

@@ -76,10 +76,10 @@ When a task touches both frontend and backend (e.g., "wire up the SSE connection
 - [x] ChromaDB seeded with 1,423 real sections from 7 .txt law files (section-level, real section numbers)
 - [x] Agent modules written: intake.py, research.py, drafter.py, verifier.py, filing_assistant.py
 - [x] Services fully implemented: chroma_service.py, groq_client.py, pdf_generator.py, sse.py
-- [x] schemas.py — Pydantic v2 models: PipelineRequest, IncidentJSON, LegalSection, VerificationResult, PipelineEvent
+- [x] schemas.py — Pydantic v2 models: PipelineRequest (now includes optional extracted_data field), IncidentJSON, LegalSection, VerificationResult, PipelineEvent
 - [x] main.py — all 4 routes wired: POST /pipeline, GET /stream/{sid}, GET /download-pdf/{sid}, GET /health
-- [x] run_pipeline() — chains all 5 agents as BackgroundTask with SSE events at each step
-- [x] Frontend: all components + useSSE hook + API client + FilingAssistant component
+- [x] run_pipeline() — chains all 5 agents as BackgroundTask with SSE events at each step; accepts extracted_data param — if present, skips run_intake entirely and uses pre-collected chat data directly (fixes bracket placeholder bug)
+- [x] Frontend: all components + useSSE hook + API client + FilingAssistant component; api.js startPipeline() passes extracted_data as separate field; App.jsx passes extractedData directly (no longer serialized into description string)
 - [x] Frontend UI revamp: 5-view state machine (LANDING → SELECT_DOC → INPUT_CASE → PROCESSING → VIEW_RESULTS)
 - [x] LandingPage.jsx: hero (न्यायमित्र), stats, how-it-works, doc preview strip, dual CTAs
 - [x] ShaderBackground.jsx: WebGL MeshGradient via @paper-design/shaders-react, dark zinc/amber palette
@@ -88,9 +88,9 @@ When a task touches both frontend and backend (e.g., "wire up the SSE connection
 - [x] ProcessingPage.jsx: full-screen pipeline view with spinner
 - [x] ResultsPage.jsx: stacked draft + verifier + filing guide + PDF download
 - [x] All 15 Playwright MCP assertions verified in Chrome
-- [x] intake.py captures incident_time and parties[].contact
+- [x] intake.py captures incident_time and parties[].contact; FIR mandatory fields: complainant address + time of complaint always required; IMEI only for phones/laptops; vehicle theft asks registration + chassis/engine number
 - [x] drafter.py: stolen items list for theft/robbery, assailant description, CCTV request, [bracketed placeholders]
-- [x] filing_assistant.py: FIR (10-state e-FIR routing, violence detection), consumer_complaint (_handle_consumer_complaint: e-Daakhil field mapping from case JSON, required_documents checklist, dedicated Groq prompt), post guide for notices
+- [x] filing_assistant.py: all 5 doc types have dedicated handlers — FIR (10-state e-FIR routing, violence detection), consumer_complaint (_handle_consumer_complaint: e-Daakhil field mapping, required_documents, Groq prompt), legal_notice (_handle_legal_notice: RPAD guide, delivery-date deadline logic), cheque_bounce (_handle_cheque_bounce: Section 138 NI Act court procedure, 30-day/15-day deadline warnings), tenant_eviction (_handle_tenant_eviction: Rent Control Authority / Tis Hazari routing, grounds-based steps, illegal eviction warning)
 - [x] groq_client.py: dual-model (70B for quality agents, 8B for utility agents), per-agent max_tokens
 - [x] backend/.env created (GROQ_API_KEY placeholder — fill in real key)
 - [ ] GROQ_API_KEY filled in backend/.env
@@ -133,10 +133,10 @@ backend/
   .env                 — GROQ_API_KEY (fill in real key)
   .env.example         — Template
   agents/
-    intake.py          — IntakeAgent: extracts structured case JSON (incident_time, parties[].contact) [70B, 700 tokens]
-    research.py        — LegalResearchAgent: RAG query over ChromaDB, filters chunk_ IDs [8B, 600 tokens]
-    drafter.py         — DrafterAgent: bilingual legal document, stolen items, assailant description [70B, 3000 tokens]
-    verifier.py        — VerifierAgent: completeness check [70B, 700 tokens]
+    intake.py          — IntakeAgent: extracts structured case JSON (incident_time, parties[].contact); ConversationalIntakeAgent (chat_intake): multi-turn intake with per-doc-type rules, anomaly detection (implausible items at public locations), IMEI asked only for phones/laptops [70B, 700/900 tokens]
+    research.py        — LegalResearchAgent: RAG query over ChromaDB, filters chunk_ IDs; FIR doc type hard-filters to BNS-only (where act=="Bharatiya Nyaya Sanhita 2023"), excludes BNSS procedural sections [8B, 600 tokens]
+    drafter.py         — DrafterAgent: dedicated template per doc type (5 types), bilingual legal document, stolen items, assailant description; section citations format = "Section X BNS 2023: Title" — no explanatory prose [70B, 3000 tokens]
+    verifier.py        — VerifierAgent: completeness check + reality rules: public place→no dwelling-house sections; clothing-only accused→no organised crime citations [70B, 700 tokens]
     filing_assistant.py — FilingAssistantAgent: dedicated handler per doc type — FIR (10-state e-FIR routing + violence gate), consumer_complaint (_handle_consumer_complaint: e-Daakhil field mapping + required_documents + dedicated Groq prompt), post guide for notices [8B, 900 tokens]
   services/
     chroma_service.py  — Lazy singleton: init_chroma(), query_laws(), get_indexed_count()

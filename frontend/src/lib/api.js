@@ -28,15 +28,15 @@ export function generateSessionId() {
  * @param {string} sessionId
  * @returns {Promise<{ status: string, session_id: string }>}
  */
-export async function startPipeline(docType, description, sessionId) {
+export async function startPipeline(docType, description, sessionId, extractedData = null) {
+  const body = { doc_type: docType, description, session_id: sessionId };
+  if (extractedData && Object.keys(extractedData).length > 0) {
+    body.extracted_data = extractedData;
+  }
   const res = await fetch(`${API_BASE}/pipeline`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      doc_type: docType,
-      description,
-      session_id: sessionId,
-    }),
+    body: JSON.stringify(body),
   });
 
   if (!res.ok) {
@@ -44,6 +44,24 @@ export async function startPipeline(docType, description, sessionId) {
     throw new Error(`Pipeline start failed (${res.status}): ${text}`);
   }
 
+  return res.json();
+}
+
+/**
+ * POST /api/chat/intake — send a conversational message to the intake agent.
+ *
+ * @param {string} docType
+ * @param {string} sessionId
+ * @param {Array<{role: string, content: string}>} messages
+ * @returns {Promise<{ agent_reply: string, is_complete: boolean, extracted_data: object, missing_fields: string[] }>}
+ */
+export async function chatWithIntake(docType, sessionId, messages, lang = "en") {
+  const res = await fetch(`${API_BASE}/api/chat/intake`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ doc_type: docType, session_id: sessionId, messages, lang }),
+  });
+  if (!res.ok) throw new Error("Intake API failed");
   return res.json();
 }
 

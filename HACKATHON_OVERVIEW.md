@@ -19,7 +19,7 @@ India has **1.4 billion people** and a **judicial backlog of 50 million+ pending
 Result: Snatching victims don't file FIRs. Consumer fraud victims swallow the loss. Cheque bounce cases go unpursued. Tenants face illegal evictions.
 
 ---
-
+    
 ## The Solution — NyayaMitra
 
 A user describes their situation in **plain Hindi or Hinglish** (the way they'd tell a friend). NyayaMitra produces a **complete, print-ready, legally correct bilingual document** in under 30 seconds — citing the right law, with the right sections, at zero cost.
@@ -44,9 +44,12 @@ User types in Hindi/English
         ▼
 ┌─────────────────────────────────────────────────────────────┐
 │  STEP 1 — IntakeAgent                          [Llama 3.3 70B] │
-│  Reads raw description (Hindi/Hinglish/English)              │
-│  Extracts: parties, dates, incident_time, location,          │
-│  contact info, sequence of events, key legal claims          │
+│  Multi-turn conversational chat collects all mandatory facts  │
+│  FIR requires: name, address, contact, date, time, location  │
+│  IMEI only for phones/laptops; vehicle → reg + chassis no.   │
+│  Anomaly detection: flags implausible items at public spaces  │
+│  If chat already collected data → run_intake SKIPPED,        │
+│  extracted_data passed directly (no re-parsing via LLM)      │
 │  Output: structured JSON                                     │
 └────────────────────────┬────────────────────────────────────┘
                          │
@@ -55,7 +58,10 @@ User types in Hindi/English
 │  STEP 2 — LegalResearchAgent                   [Llama 3.1 8B]  │
 │  Queries ChromaDB (1,423 real sections from 7 Indian acts)   │
 │  all-MiniLM-L6-v2 embeddings, cosine similarity, top-10      │
-│  8B model re-ranks and selects 6 most applicable sections    │
+│  FIR: hard-filters to BNS 2023 only (excludes BNSS)          │
+│  Section accuracy rules: BNS 304 only if force from person;  │
+│  BNS 305 only inside dwelling/vehicle/worship; BNS 317       │
+│  (stolen property) never cited for victim — applies to fence │
 │  Output: [{section, act, title, reason}]                     │
 └────────────────────────┬────────────────────────────────────┘
                          │
@@ -75,8 +81,10 @@ User types in Hindi/English
 ┌─────────────────────────────────────────────────────────────┐
 │  STEP 4 — VerifierAgent                        [Llama 3.3 70B] │
 │  Checks: correct sections cited? all fields present?         │
-│  Document matches required format for doc type?              │
-│  Raises flags for anything missing or legally weak           │
+│  FIR: flags missing address or time as high-severity         │
+│  Reality rules: public place → reject dwelling-house sects;  │
+│  clothing-only accused → reject organised crime citations;   │
+│  semantic check: BNS 304/305/317 misuse flagged              │
 │  Output: quality score + improvement suggestions             │
 └────────────────────────┬────────────────────────────────────┘
                          │
@@ -89,10 +97,17 @@ User types in Hindi/English
 │  Consumer Complaint → e-Daakhil (edaakhil.nic.in),           │
 │         maps 8 form fields from case JSON, returns           │
 │         required_documents checklist (8 items)               │
-│  Legal Notice / Cheque Bounce / Eviction → Speed Post guide  │
+│  Legal Notice → RPAD (registered post) + email guide,        │
+│         demand deadline tracking, proof-of-service advice    │
+│  Cheque Bounce → Magistrate Court filing, Section 138 NI     │
+│         Act procedure, 30-day notice + 15-day wait logic,    │
+│         deadline-critical warnings                           │
+│  Tenant Eviction → Rent Control Authority / Civil Court,     │
+│         Delhi Tis Hazari routing, grounds-based procedure,   │
+│         illegal eviction warning (BNS 2023)                  │
 │  Generates numbered bilingual steps for each path            │
 │  Output: portal URL + steps + field mapping +                │
-│          required_documents (consumer) + warnings            │
+│          required_documents + warnings (all 5 doc types)     │
 └────────────────────────┬────────────────────────────────────┘
                          │
                          ▼
@@ -123,7 +138,9 @@ Most tools stop at generating a document. NyayaMitra's FilingAssistant takes the
 - **Violence detected** → offline in-person guide with what to bring to the police station
 - **Non-violent theft/snatching** → direct link to that state's e-FIR portal with exact form field pre-fills
 - **Consumer complaint** → NCDRC e-Daakhil portal: 8 form fields pre-filled from case JSON (complainant name, OP name, transaction date, relief sought etc.), checklist of 8 required documents to upload, bilingual step-by-step guide including filing fee info (free under ₹5 lakh)
-- **Legal notice / cheque bounce / eviction** → registered post instructions with recipient details pre-filled
+- **Legal notice** → RPAD registered post guide, email timestamp backup, delivery-date deadline calculation
+- **Cheque bounce** → Magistrate Court Section 138 NI Act procedure — 30-day notice window + 15-day payment wait + complaint filing steps; deadline-critical warnings
+- **Tenant eviction** → Rent Control Authority / Civil Court routing (Delhi: Tis Hazari), grounds-based procedure, required documents checklist, warning against illegal eviction
 
 ---
 

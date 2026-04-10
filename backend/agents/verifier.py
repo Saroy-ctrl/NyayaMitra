@@ -33,12 +33,18 @@ Return ONLY valid JSON:
 
 Check for:
 1. All required fields present (parties, dates, location, legal basis, relief)
-2. Legal sections cited correctly (BNS not IPC, BNSS not CrPC)
-3. Relief/remedy clearly stated
-4. Formal legal language used
-5. No fabricated section numbers
-6. Bilingual elements where appropriate
-7. Document structure follows Indian legal conventions
+2. For FIR specifically: complainant's residential address AND time of complaint are MANDATORY — flag as "high" severity if either is a placeholder like "[Complainant's Address]" or "[Time of complaint]"
+3. Legal sections cited correctly (BNS not IPC, BNSS not CrPC)
+4. Relief/remedy clearly stated
+5. Formal legal language used
+6. No fabricated section numbers
+7. Bilingual elements where appropriate
+8. Document structure follows Indian legal conventions
+9. Section semantic accuracy: BNS 304 (Snatching) only if force from person's body; BNS 305 only if inside dwelling/vehicle/place of worship; BNS 317 (Stolen property) must NOT be cited for the victim — it applies to receivers of stolen goods
+
+Reality-Check Rules (apply these after the standard checks above):
+- Rule A (Location vs Section Mismatch): If the crime location stated in the case facts is a public place (market, plaza, road, mall, office, shop, bus stand, railway station, street, parking lot), and the draft cites any section related to "dwelling house", "house trespass", or "criminal trespass into a building" — flag it as an issue with severity "high", field "legal_sections", suggestion "The cited section applies to dwelling/house trespass but the crime occurred in a public space — replace with the correct open-area offence section."
+- Rule B (Organised Crime Evidence Gate): If the only evidence linking the accused is a clothing/appearance description (e.g. "black hoodie", "red jacket man", "unknown male in blue shirt") with no other identifying information, and the draft cites any section related to organised crime, gang activity, or petty organised crime (e.g. BNS Section 112 Petty Organised Crime) — flag it as an issue with severity "high", field "legal_sections", suggestion "Insufficient evidence for organised crime citation — a clothing description alone does not establish gang membership or organised criminal activity. Remove this section."
 
 overall_quality: "good" (score 8-10), "acceptable" (5-7), "poor" (1-4)
 Return ONLY JSON, no explanation.
