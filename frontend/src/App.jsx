@@ -18,6 +18,7 @@ import ProcessingPage from "./components/ProcessingPage";
 import ResultsPage from "./components/ResultsPage";
 import { useSSE } from "./hooks/useSSE";
 import { startPipeline, generateSessionId } from "./lib/api";
+import { LANGUAGES } from "./lib/i18n";
 
 const VIEWS = {
   LANDING: "LANDING",
@@ -42,6 +43,7 @@ export default function App() {
   const [isLoading, setIsLoading] = useState(false);
   const [pipelineError, setPipelineError] = useState(null);
   const [demoText, setDemoText] = useState(null);
+  const [selectedLang, setSelectedLang] = useState("en");
 
   const {
     events,
@@ -69,7 +71,7 @@ export default function App() {
     setIsLoading(true);
 
     try {
-      await startPipeline(selectedDoc, description || "case details collected via chat", sid, extractedData);
+      await startPipeline(selectedDoc, description || "case details collected via chat", sid, extractedData, selectedLang);
       setPipelineStarted(true);
       window.scrollTo(0, 0);
       setView(VIEWS.PROCESSING);
@@ -131,9 +133,15 @@ export default function App() {
               </div>
             </div>
           </button>
-          <span className="hidden sm:block font-mono text-xs text-zinc-600">
-            Powered by Llama 3.3 &bull; भारत
-          </span>
+          <select
+            value={selectedLang}
+            onChange={(e) => setSelectedLang(e.target.value)}
+            className="rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-1.5 text-sm text-zinc-300 focus:outline-none focus:border-amber-500 cursor-pointer"
+          >
+            {LANGUAGES.map((l) => (
+              <option key={l.code} value={l.code}>{l.label}</option>
+            ))}
+          </select>
         </div>
       </header>
 
@@ -161,6 +169,7 @@ export default function App() {
                 onBack={() => { window.scrollTo(0, 0); setView(VIEWS.SELECT_DOC); }}
                 isLoading={isLoading}
                 initialText={demoText}
+                lang={selectedLang}
               />
               {pipelineError && (
                 <div className="max-w-3xl mx-auto rounded-xl border border-red-500/30 bg-red-500/10 p-4 text-sm text-red-400">
@@ -188,6 +197,7 @@ export default function App() {
               sessionId={sessionId}
               isComplete={isComplete}
               onReset={handleReset}
+              lang={selectedLang}
             />
           )}
         </div>
