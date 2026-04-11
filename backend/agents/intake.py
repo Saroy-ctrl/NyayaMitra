@@ -249,12 +249,13 @@ async def chat_intake(
             except (json.JSONDecodeError, KeyError):
                 continue
 
-    lang_label = "Hindi (Devanagari script)" if lang == "hi" else "English"
-    lang_instruction = (
-        "Write in clear Hindi using Devanagari script. Do not use Roman/Latin script for Hindi words."
-        if lang == "hi" else
-        "Write in clear English. You may include Hindi legal terms in parentheses where helpful."
-    )
+    _LANG_CONFIG = {
+        "hi": ("Hindi (Devanagari script)", "Write in clear Hindi using Devanagari script. Do not use Roman/Latin script for Hindi words."),
+        "bn": ("Bengali (Bangla script)", "Write in clear Bengali using Bangla script. Do not mix in English sentences unless quoting a legal term."),
+        "mr": ("Marathi (Devanagari script)", "Write in clear Marathi using Devanagari script. Do not use Roman/Latin script for Marathi words."),
+        "ta": ("Tamil script", "Write in clear Tamil using Tamil script. Do not mix in English sentences unless quoting a legal term."),
+    }
+    lang_label, lang_instruction = _LANG_CONFIG.get(lang, ("English", "Write in clear English. You may include Hindi legal terms in parentheses where helpful."))
     system_prompt = _CONVERSATIONAL_SYSTEM_PROMPT.format(
         doc_type=doc_type,
         doc_type_rules=rules,
@@ -302,11 +303,13 @@ async def chat_intake(
         result: dict[str, Any] = json.loads(cleaned)
     except json.JSONDecodeError:
         # Detect if user was speaking Hinglish/Hindi so fallback reply matches
-        fallback_reply = (
-            "क्षमा करें, मुझे थोड़ी परेशानी हुई। कृपया अपनी स्थिति फिर से बताइए — क्या हुआ, कब हुआ, और कहाँ हुआ?"
-            if lang == "hi" else
-            "Sorry, I had trouble understanding that. Could you describe what happened, when, and where?"
-        )
+        _FALLBACK_REPLIES = {
+            "hi": "क्षमा करें, मुझे थोड़ी परेशानी हुई। कृपया अपनी स्थिति फिर से बताइए — क्या हुआ, कब हुआ, और कहाँ हुआ?",
+            "bn": "দুঃখিত, আমার বুঝতে সমস্যা হয়েছে। অনুগ্রহ করে আবার বলুন — কী হয়েছে, কখন এবং কোথায়?",
+            "mr": "माफ करा, मला समजण्यात अडचण आली. कृपया पुन्हा सांगा — काय झाले, केव्हा आणि कुठे?",
+            "ta": "மன்னிக்கவும், புரிந்துகொள்ள சிரமம் ஏற்பட்டது. என்ன நடந்தது, எப்போது, எங்கே என்று மீண்டும் சொல்லுங்கள்.",
+        }
+        fallback_reply = _FALLBACK_REPLIES.get(lang, "Sorry, I had trouble understanding that. Could you describe what happened, when, and where?")
         result = {
             "extracted_data": current_state,
             "is_complete": False,
