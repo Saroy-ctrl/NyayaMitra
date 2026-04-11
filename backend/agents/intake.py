@@ -208,9 +208,9 @@ PROCESSING STEPS:
 2. Run ANOMALY CHECK above first.
 3. Merge with ALREADY COLLECTED facts — never lose previously collected data.
 4. Check which mandatory facts are still missing.
-5. If missing: set is_complete=false, ask for at most 2 missing things in agent_reply (in Hindi if user used Hindi/Hinglish).
+5. If missing: set is_complete=false, ask for at most 2 missing things in agent_reply. WRITE THE REPLY IN {lang_label} ONLY.
 6. If cheque bounce return memo is >30 days old: warn about expired legal window.
-7. If all mandatory facts collected: set is_complete=true, tell user you are ready to draft (in their language).
+7. If all mandatory facts collected: set is_complete=true, tell user you are ready to draft. WRITE THE REPLY IN {lang_label} ONLY.
 
 OUTPUT (JSON ONLY, no other text):
 {{"extracted_data": {{}}, "is_complete": false, "missing_fields": ["example"], "agent_reply": "your reply here"}}"""
