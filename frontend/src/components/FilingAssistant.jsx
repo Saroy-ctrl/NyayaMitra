@@ -4,6 +4,7 @@
  */
 
 import { useState } from "react";
+import { STRINGS } from "../lib/i18n";
 
 const MODE_CONFIG = {
   online: {
@@ -32,7 +33,7 @@ const MODE_CONFIG = {
   },
 };
 
-export default function FilingAssistant({ data }) {
+export default function FilingAssistant({ data, lang = "en" }) {
   const [showHindi, setShowHindi] = useState(false);
 
   if (!data) return null;
@@ -102,22 +103,27 @@ export default function FilingAssistant({ data }) {
         {steps.length > 0 && (
           <div>
             <h4 className="text-xs font-mono uppercase tracking-widest text-zinc-500 mb-3">
-              Step-by-Step Instructions
+              {STRINGS[lang]?.filing_heading ?? STRINGS.en.filing_heading}
             </h4>
             <ol className="space-y-3">
-              {steps.map((step, i) => (
-                <li key={i} className="flex gap-3">
-                  <span className="shrink-0 h-6 w-6 rounded-full bg-zinc-800 border border-zinc-700 flex items-center justify-center text-xs font-bold text-amber-400">
-                    {i + 1}
-                  </span>
-                  <div className="pt-0.5">
-                    <p className="text-sm text-zinc-200">{step.en}</p>
-                    {showHindi && step.hi && (
-                      <p className="text-xs text-zinc-500 mt-0.5 font-devanagari">{step.hi}</p>
-                    )}
-                  </div>
-                </li>
-              ))}
+              {steps.map((step, i) => {
+                const isRegional = lang !== "en" && lang !== "hi";
+                const mainText = isRegional && step.regional ? step.regional : step.en;
+                const altText = isRegional ? step.en : step.hi;
+                return (
+                  <li key={i} className="flex gap-3">
+                    <span className="shrink-0 h-6 w-6 rounded-full bg-zinc-800 border border-zinc-700 flex items-center justify-center text-xs font-bold text-amber-400">
+                      {i + 1}
+                    </span>
+                    <div className="pt-0.5">
+                      <p className="text-sm text-zinc-200">{mainText}</p>
+                      {showHindi && altText && (
+                        <p className="text-xs text-zinc-500 mt-0.5">{altText}</p>
+                      )}
+                    </div>
+                  </li>
+                );
+              })}
             </ol>
           </div>
         )}

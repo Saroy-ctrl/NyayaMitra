@@ -30,6 +30,7 @@ export default function ResultsPage({
   sessionId,
   isComplete,
   onReset,
+  lang = "en",
 }) {
   return (
     <div className="space-y-10">
@@ -62,7 +63,7 @@ export default function ResultsPage({
       {verification && <VerifierFlags verification={verification} />}
 
       {/* Filing guide */}
-      {filingData && <FilingAssistant data={filingData} />}
+      {filingData && <FilingAssistant data={filingData} lang={lang} />}
 
       {/* PDF download */}
       <PDFDownload sessionId={sessionId} isReady={isComplete} />
