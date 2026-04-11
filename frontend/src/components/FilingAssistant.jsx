@@ -69,7 +69,9 @@ export default function FilingAssistant({ data, lang = "en" }) {
             onClick={() => setShowHindi((v) => !v)}
             className="shrink-0 text-xs font-mono border border-zinc-700 rounded-lg px-3 py-1.5 text-zinc-400 hover:text-zinc-200 hover:border-zinc-500 transition-colors"
           >
-            {showHindi ? "EN" : "हिं"}
+            {lang !== "en" && lang !== "hi"
+            ? (showHindi ? "REGIONAL" : "EN")
+            : (showHindi ? "EN" : "हिं")}
           </button>
         )}
       </div>
