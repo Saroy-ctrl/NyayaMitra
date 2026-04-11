@@ -92,7 +92,7 @@ VALID_DOC_TYPES = {
 # ---------------------------------------------------------------------------
 # Pipeline orchestration (background task)
 # ---------------------------------------------------------------------------
-async def run_pipeline(doc_type: str, description: str, session_id: str, extracted_data: dict | None = None) -> None:
+async def run_pipeline(doc_type: str, description: str, session_id: str, extracted_data: dict | None = None, lang: str = "en") -> None:
     """
     Execute the 4-agent pipeline sequentially, pushing SSE events at each step.
 
@@ -162,7 +162,7 @@ async def run_pipeline(doc_type: str, description: str, session_id: str, extract
         # Agent 5: Filing Assistant -- generate portal + filing instructions
         # ------------------------------------------------------------------
         from agents.filing_assistant import run_filing_assistant
-        filing = await run_filing_assistant(doc_type, intake_result, draft, session_id)
+        filing = await run_filing_assistant(doc_type, intake_result, draft, session_id, lang=lang)
 
         # ------------------------------------------------------------------
         # Store results in session_store for later retrieval
@@ -219,7 +219,7 @@ async def start_pipeline(req: PipelineRequest, background_tasks: BackgroundTasks
             ),
         )
 
-    background_tasks.add_task(run_pipeline, req.doc_type, req.description, req.session_id, req.extracted_data)
+    background_tasks.add_task(run_pipeline, req.doc_type, req.description, req.session_id, req.extracted_data, req.language)
 
     return {
         "status": "started",

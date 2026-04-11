@@ -38,6 +38,10 @@ class PipelineRequest(BaseModel):
         default=None,
         description="Pre-collected structured intake data from conversational intake — if provided, run_intake is skipped",
     )
+    language: str = Field(
+        default="en",
+        description="Language code for UI and filing guide translation: en | hi | bn | mr | ta",
+    )
 
 
 # ---------------------------------------------------------------------------
