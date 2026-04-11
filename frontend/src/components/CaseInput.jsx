@@ -12,11 +12,13 @@
  *   onBack     ()         — return to SELECT_DOC
  *   isLoading  (bool)     — true while pipeline is starting (post-submit)
  *   initialText (string|null) — optional pre-filled first message (demo flow)
+ *   lang       (string)   — language code from parent (e.g. "en", "hi", "bn")
  */
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { ArrowRight, Loader, Zap, RotateCcw, Mic, MicOff } from "lucide-react";
 import { chatWithIntake } from "../lib/api";
+import { STRINGS, LANGUAGES, WELCOME_MESSAGES } from "../lib/i18n";
 
 /* ─────────────────────────────────────────────────────────────── */
 /*  Static data                                                    */
@@ -52,35 +54,20 @@ const DEMO_TEXTS = {
     "Resign karne ke baad bhi full and final settlement nahi kiya. HR ko emails kiye par koi jawab nahi.",
 };
 
-const WELCOME_EN =
-  "Namaste! I'm NyayaMitra. Please describe your situation — what happened, when, where, and who was involved? You can reply in Hindi or English.";
-const WELCOME_HI =
-  "नमस्ते! मैं न्यायमित्र हूँ। कृपया अपनी स्थिति बताइए — क्या हुआ, कब हुआ, कहाँ हुआ, और कौन शामिल था? आप हिंदी या English में जवाब दे सकते हैं।";
+const WELCOME_MESSAGE = {
+  role: "agent",
+  content: "",
+  isWelcome: true,
+};
 
-function WelcomeMessage({ lang, onLangChange }) {
+function WelcomeMessage({ lang }) {
   return (
     <div className="rounded-lg p-3 mb-2 bg-amber-950/60 border border-amber-800/40 text-amber-100 text-sm max-w-[80%]">
       <div className="text-xs font-mono text-amber-500 mb-1 uppercase tracking-widest">NyayaMitra</div>
-      <p>{lang === "en" ? WELCOME_EN : WELCOME_HI}</p>
-      <div className="mt-2 flex gap-2">
-        <button
-          onClick={() => onLangChange("en")}
-          className={`text-xs px-2 py-0.5 rounded border ${lang === "en" ? "border-amber-500 text-amber-300 bg-amber-900/40" : "border-zinc-600 text-zinc-400"}`}
-        >English</button>
-        <button
-          onClick={() => onLangChange("hi")}
-          className={`text-xs px-2 py-0.5 rounded border ${lang === "hi" ? "border-amber-500 text-amber-300 bg-amber-900/40" : "border-zinc-600 text-zinc-400"}`}
-        >हिंदी</button>
-      </div>
+      <p>{WELCOME_MESSAGES[lang] ?? WELCOME_MESSAGES.en}</p>
     </div>
   );
 }
-
-const WELCOME_MESSAGE = {
-  role: "agent",
-  content: WELCOME_EN,
-  isWelcome: true,
-};
 
 /* ─────────────────────────────────────────────────────────────── */
 /*  Typing indicator                                               */
@@ -104,9 +91,9 @@ function TypingIndicator() {
 /*  Individual message bubble                                      */
 /* ─────────────────────────────────────────────────────────────── */
 
-function MessageBubble({ message, lang, onLangChange }) {
+function MessageBubble({ message, lang }) {
   const isAgent = message.role === "agent";
-  if (message.isWelcome) return <WelcomeMessage lang={lang} onLangChange={onLangChange} />;
+  if (message.isWelcome) return <WelcomeMessage lang={lang} />;
   return (
     <div className={`flex flex-col mb-3 ${isAgent ? "items-start" : "items-end"}`}>
       {isAgent && (
@@ -139,6 +126,7 @@ export default function CaseInput({
   onBack,
   isLoading = false,
   initialText = null,
+  lang = "en",
 }) {
   const [messages, setMessages] = useState([WELCOME_MESSAGE]);
   const [inputText, setInputText] = useState("");
@@ -146,7 +134,7 @@ export default function CaseInput({
   const [isComplete, setIsComplete] = useState(false);
   const [extractedData, setExtractedData] = useState(null);
   const [error, setError] = useState(null);
-  const [lang, setLang] = useState("en");
+  // NOTE: lang state is removed — it now comes from the parent prop
 
   const [isListening, setIsListening] = useState(false);
   const [micError, setMicError] = useState(null);
@@ -165,7 +153,7 @@ export default function CaseInput({
     const recognition = new SpeechRecognition();
     recognition.continuous = false;
     recognition.interimResults = false;
-    recognition.lang = lang === "hi" ? "hi-IN" : "en-US";
+    recognition.lang = LANGUAGES.find((l) => l.code === lang)?.speechCode ?? "en-US";
 
     recognition.onresult = (e) => {
       const transcript = e.results[0]?.[0]?.transcript ?? "";
@@ -318,7 +306,7 @@ export default function CaseInput({
       <div className="space-y-3">
         <div className="flex items-center justify-between">
           <p className="font-mono text-xs uppercase tracking-widest text-zinc-500">
-            Step 2 of 3
+            {STRINGS[lang]?.step_label ?? STRINGS.en.step_label}
           </p>
           <button
             type="button"
@@ -329,10 +317,10 @@ export default function CaseInput({
           </button>
         </div>
         <h2 className="text-2xl font-semibold text-zinc-100">
-          Describe your situation
+          {STRINGS[lang]?.describe_heading ?? STRINGS.en.describe_heading}
         </h2>
         <p className="text-zinc-400 text-sm">
-          अपनी बात हिंदी या English में लिखें — जैसे किसी दोस्त को बताते हैं
+          {STRINGS[lang]?.describe_subtext ?? STRINGS.en.describe_subtext}
         </p>
       </div>
 
@@ -354,7 +342,7 @@ export default function CaseInput({
         {/* Scrollable chat history */}
         <div className="max-h-96 overflow-y-auto px-4 pt-4 pb-2 space-y-1">
           {messages.map((msg, idx) => (
-            <MessageBubble key={idx} message={msg} lang={lang} onLangChange={setLang} />
+            <MessageBubble key={idx} message={msg} lang={lang} />
           ))}
 
           {isTyping && (
@@ -398,7 +386,7 @@ export default function CaseInput({
         {isComplete ? (
           <div className="border-t border-zinc-800 px-4 py-4 flex flex-col items-center gap-2">
             <p className="text-sm text-emerald-400 font-medium">
-              Information collected. Ready to generate your document.
+              {STRINGS[lang]?.info_collected ?? STRINGS.en.info_collected}
             </p>
             <button
               type="button"
@@ -409,12 +397,12 @@ export default function CaseInput({
               {isLoading ? (
                 <>
                   <Loader className="h-4 w-4 animate-spin" />
-                  Starting pipeline...
+                  {STRINGS[lang]?.starting ?? STRINGS.en.starting}
                 </>
               ) : (
                 <>
                   <ArrowRight className="h-4 w-4" />
-                  Proceed to Drafting
+                  {STRINGS[lang]?.proceed ?? STRINGS.en.proceed}
                 </>
               )}
             </button>
@@ -427,7 +415,7 @@ export default function CaseInput({
                 value={inputText}
                 onChange={(e) => setInputText(e.target.value)}
                 onKeyDown={handleKeyDown}
-                placeholder="Type your reply... (Hindi ya English dono chalega)"
+                placeholder={STRINGS[lang]?.placeholder ?? STRINGS.en.placeholder}
                 disabled={isTyping || isLoading}
                 rows={3}
                 className="w-full resize-none bg-transparent text-zinc-100 placeholder-zinc-500 text-sm leading-relaxed focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
@@ -445,7 +433,7 @@ export default function CaseInput({
                     className="flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-xs text-zinc-400 hover:text-amber-400 transition-colors duration-200 disabled:opacity-40 disabled:cursor-not-allowed"
                   >
                     <Zap className="h-3.5 w-3.5" />
-                    Try example
+                    {STRINGS[lang]?.try_example ?? STRINGS.en.try_example}
                   </button>
                 )}
                 <button
@@ -454,7 +442,7 @@ export default function CaseInput({
                   disabled={isTyping || isLoading}
                   className="text-xs text-zinc-600 hover:text-zinc-400 transition-colors duration-200 disabled:opacity-40"
                 >
-                  Skip / Force Proceed
+                  {STRINGS[lang]?.skip ?? STRINGS.en.skip}
                 </button>
               </div>
 
@@ -497,7 +485,7 @@ export default function CaseInput({
                 ].join(" ")}
               >
                 <ArrowRight className="h-4 w-4" />
-                Send
+                {STRINGS[lang]?.send ?? STRINGS.en.send}
               </button>
               </div>
             </div>
