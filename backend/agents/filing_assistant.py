@@ -19,6 +19,74 @@ from services.sse import push_event
 logger = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
+# Language name map for translation prompts
+# ---------------------------------------------------------------------------
+_LANG_NAMES: dict[str, str] = {
+    "hi": "Hindi",
+    "bn": "Bengali",
+    "mr": "Marathi",
+    "ta": "Tamil",
+}
+
+
+async def _translate_steps(
+    steps: list[dict],
+    warnings: list[str],
+    lang: str,
+) -> tuple[list[dict], list[str]]:
+    """
+    Translate step .en text and warnings into target language using Groq.
+    Adds a `regional` key to each step dict with the translated text.
+    Warnings are returned as translated plain strings.
+    On any failure, returns original steps and warnings unchanged (English fallback).
+    """
+    lang_name = _LANG_NAMES.get(lang, "Hindi")
+    step_texts = [s.get("en", "") for s in steps]
+
+    prompt = (
+        f"Translate the following legal filing guide items into {lang_name}.\n"
+        "Rules:\n"
+        "- Keep URLs, portal names, section numbers, and proper nouns in English\n"
+        "- Translate all other text naturally\n"
+        f'- Return ONLY valid JSON: {{"steps": ["...", "..."], "warnings": ["...", "..."]}}\n\n'
+        f"Steps: {json.dumps(step_texts)}\n"
+        f"Warnings: {json.dumps(warnings)}"
+    )
+
+    try:
+        raw = await call_groq(
+            system="You are a precise legal translator. Return only valid JSON, no commentary.",
+            user=prompt,
+            model="llama-3.1-8b-instant",
+            temperature=0.1,
+            max_tokens=1500,
+        )
+        # Strip markdown code fences if present
+        cleaned = raw.strip()
+        if cleaned.startswith("```"):
+            cleaned = re.sub(r"^```[a-z]*\n?", "", cleaned)
+            cleaned = re.sub(r"\n?```$", "", cleaned)
+
+        parsed = json.loads(cleaned)
+        translated_steps = parsed.get("steps", step_texts)
+        translated_warnings = parsed.get("warnings", warnings)
+
+        # Merge translated text back as `regional` key on each step
+        result_steps = []
+        for i, step in enumerate(steps):
+            new_step = dict(step)
+            if i < len(translated_steps):
+                new_step["regional"] = translated_steps[i]
+            result_steps.append(new_step)
+
+        return result_steps, translated_warnings
+
+    except Exception as exc:
+        logger.warning("Translation to %s failed, using English fallback: %s", lang_name, exc)
+        return steps, warnings
+
+
+# ---------------------------------------------------------------------------
 # State -> e-FIR portal map
 # Only states with confirmed working e-FIR portals listed.
 # ---------------------------------------------------------------------------
@@ -598,6 +666,7 @@ async def run_filing_assistant(
     incident_json: dict[str, Any],
     draft: str,
     session_id: str,
+    lang: str = "en",
 ) -> dict[str, Any]:
     """
     Determine the correct filing portal and generate step-by-step instructions.
@@ -627,75 +696,74 @@ async def run_filing_assistant(
 
         if doc_type == "fir":
             result = _handle_fir(incident_json)
-            await push_event(session_id, "filing_assistant", "complete", {"filing": result})
-            return result
 
         elif doc_type == "consumer_complaint":
             result = await _handle_consumer_complaint(incident_json, draft)
-            await push_event(session_id, "filing_assistant", "complete", {"filing": result})
-            return result
 
         elif doc_type == "cheque_bounce":
             result = _handle_cheque_bounce(incident_json)
-            await push_event(session_id, "filing_assistant", "complete", {"filing": result})
-            return result
 
         elif doc_type == "legal_notice":
             result = _handle_legal_notice(incident_json)
-            await push_event(session_id, "filing_assistant", "complete", {"filing": result})
-            return result
 
         elif doc_type == "tenant_eviction":
             result = _handle_tenant_eviction(incident_json)
-            await push_event(session_id, "filing_assistant", "complete", {"filing": result})
-            return result
 
-        # ------------------------------------------------------------------
-        # Build context for Groq
-        # ------------------------------------------------------------------
-        context = {
-            "doc_type": doc_type,
-            "filing_mode": filing_mode,
-            "portal_name": portal_name,
-            "portal_url": portal_url,
-            "portal_note": portal_note,
-            "complainant_name": complainant.get("name", "[Name]"),
-            "complainant_contact": complainant.get("contact", ""),
-            "location": location,
-            "incident_type": incident_type,
-            "key_claims": key_claims,
-            "dates": dates,
-            "incident_time": incident_time,
-        }
+        else:
+            # ------------------------------------------------------------------
+            # Build context for Groq (generic fallthrough)
+            # ------------------------------------------------------------------
+            context = {
+                "doc_type": doc_type,
+                "filing_mode": filing_mode,
+                "portal_name": portal_name,
+                "portal_url": portal_url,
+                "portal_note": portal_note,
+                "complainant_name": complainant.get("name", "[Name]"),
+                "complainant_contact": complainant.get("contact", ""),
+                "location": location,
+                "incident_type": incident_type,
+                "key_claims": key_claims,
+                "dates": dates,
+                "incident_time": incident_time,
+            }
 
-        # Respondent for legal notice / consumer complaint
-        respondent = _extract_party(parties, "respondent")
-        if respondent:
-            context["respondent_name"] = respondent.get("name", "")
-            context["respondent_contact"] = respondent.get("contact", "")
+            # Respondent for legal notice / consumer complaint
+            respondent = _extract_party(parties, "respondent")
+            if respondent:
+                context["respondent_name"] = respondent.get("name", "")
+                context["respondent_contact"] = respondent.get("contact", "")
 
-        user_message = (
-            f"Filing context:\n{json.dumps(context, ensure_ascii=False, indent=2)}\n\n"
-            f"Case summary from document:\n{draft[:600]}\n\n"
-            f"Generate filing instructions for this specific case."
-        )
+            user_message = (
+                f"Filing context:\n{json.dumps(context, ensure_ascii=False, indent=2)}\n\n"
+                f"Case summary from document:\n{draft[:600]}\n\n"
+                f"Generate filing instructions for this specific case."
+            )
 
-        raw = await call_groq(_SYSTEM_PROMPT, user_message, max_tokens=900)
-        parsed = json.loads(_strip_code_fences(raw))
+            raw = await call_groq(_SYSTEM_PROMPT, user_message, max_tokens=900)
+            parsed = json.loads(_strip_code_fences(raw))
 
-        steps = parsed.get("steps", [])
-        fields_mapping = parsed.get("fields_mapping", [])
-        warnings = parsed.get("warnings", [])
+            steps = parsed.get("steps", [])
+            fields_mapping = parsed.get("fields_mapping", [])
+            warnings = parsed.get("warnings", [])
 
-        result = {
-            "portal_name": portal_name,
-            "portal_url": portal_url,
-            "filing_mode": filing_mode,
-            "portal_note": portal_note,
-            "steps": steps,
-            "fields_mapping": fields_mapping,
-            "warnings": warnings,
-        }
+            result = {
+                "portal_name": portal_name,
+                "portal_url": portal_url,
+                "filing_mode": filing_mode,
+                "portal_note": portal_note,
+                "steps": steps,
+                "fields_mapping": fields_mapping,
+                "warnings": warnings,
+            }
+
+        # Translate steps and warnings to target language if not English/Hindi
+        if lang not in ("en", "hi", ""):
+            steps = result.get("steps", [])
+            warnings_list = result.get("warnings", [])
+            translated_steps, translated_warnings = await _translate_steps(steps, warnings_list, lang)
+            result["steps"] = translated_steps
+            result["warnings"] = translated_warnings
 
         await push_event(
             session_id,
