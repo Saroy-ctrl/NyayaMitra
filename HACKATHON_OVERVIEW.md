@@ -22,7 +22,7 @@ Result: Snatching victims don't file FIRs. Consumer fraud victims swallow the lo
     
 ## The Solution — NyayaMitra
 
-A user describes their situation in **plain Hindi or Hinglish** (the way they'd tell a friend). NyayaMitra produces a **complete, print-ready, legally correct bilingual document** in under 30 seconds — citing the right law, with the right sections, at zero cost.
+A user describes their situation in **plain Hindi or Hinglish** — by typing or speaking. NyayaMitra produces a **complete, print-ready, legally correct English document** in under 30 seconds — citing the right law, with the right sections, at zero cost.
 
 ### What It Generates
 
@@ -69,12 +69,13 @@ User types in Hindi/English
 ┌─────────────────────────────────────────────────────────────┐
 │  STEP 3 — DrafterAgent                         [Llama 3.3 70B] │
 │  Takes structured case JSON + ranked law sections            │
-│  Produces complete formal bilingual legal document           │
+│  Produces complete formal English-only legal document        │
 │  For theft/robbery: includes stolen items list               │
 │  For assault: physical description of accused section        │
-│  Uses [bracketed placeholders] for any missing details       │
+│  Current date/time auto-injected (no placeholder for time)   │
+│  Only cites sections that directly apply — omits if unsure   │
 │  Cites ONLY BNS/BNSS/BSA — never old IPC/CrPC               │
-│  Output: print-ready document text                           │
+│  Output: print-ready document text (English only)            │
 └────────────────────────┬────────────────────────────────────┘
                          │
                          ▼
@@ -112,7 +113,7 @@ User types in Hindi/English
                          │
                          ▼
                   PDF Download
-          (ReportLab bilingual — EN + HI)
+          (ReportLab — English document)
 ```
 
 Every step **streams its status live** to the frontend via **Server-Sent Events (SSE)** — the user sees each agent light up in real time.
@@ -126,11 +127,15 @@ Every step **streams its status live** to the frontend via **Server-Sent Events 
 | **Hiring a lawyer** | Expensive, slow, inaccessible in rural areas |
 | **Generic ChatGPT/Gemini** | No Indian legal corpus, cites old IPC sections, no structured output, no PDF, no filing guide |
 | **Government legal aid portals** | Static form-fills, no NLP, English-only, no AI assistance |
-| **NyayaMitra** | Free, Hindi-first, 5-agent pipeline, RAG over current Indian law (BNS 2023), bilingual PDF, guides user all the way to actual filing |
+| **NyayaMitra** | Free, Hindi-first, voice input, 5-agent pipeline, RAG over current Indian law (BNS 2023), clean English PDF, bilingual filing guide, guides user all the way to actual filing |
 
 ### The BNS/BNSS Advantage
 
 On **1 July 2024**, India replaced three colonial-era laws with new codes. **Most AI tools, websites, and even some lawyers still cite the old IPC**. NyayaMitra's RAG corpus is built entirely from the **new BNS/BNSS/BSA 2023 texts** — so every document it generates is legally current. A document citing repealed IPC sections can be rejected or challenged in court.
+
+### Voice-First Accessibility
+
+Users can speak their situation in Hindi or English directly into the chat — no typing required. The browser's native Web Speech API transcribes speech in real time and appends it to the message box. This makes NyayaMitra accessible to users with low digital literacy or those more comfortable speaking than typing.
 
 ### End-to-End — Not Just a Draft
 
@@ -157,6 +162,11 @@ Frontend (React 18 + Vite + Tailwind + @paper-design/shaders-react)
     │   SpaceParticles (canvas, landing only)
     │   Animations: fadeInUp, cardReveal stagger, amberGlow pipeline, float headline
     │
+    ├── Voice input (Web Speech API — no external API):
+    │   Mic button in chat toolbar, hi-IN / en-US based on selected language
+    │   Appends transcript to textarea, amber glow + red dot while recording
+    │   Graceful degradation: hidden if browser unsupported (Firefox/Safari)
+    │
     │  POST /pipeline
     │  GET  /stream/{session_id}  ← SSE real-time updates
     │  GET  /download-pdf/{session_id}
@@ -173,7 +183,7 @@ Backend (Python 3.12 + FastAPI)
     ├── services/
     │   ├── chroma_service.py   ← 1,423 law sections, cosine similarity
     │   ├── groq_client.py      ← async, 3-retry exponential backoff
-    │   ├── pdf_generator.py    ← ReportLab bilingual PDF
+    │   ├── pdf_generator.py    ← ReportLab English PDF
     │   └── sse.py              ← asyncio.Queue per session
     │
     └── data/laws/
@@ -202,14 +212,14 @@ Backend (Python 3.12 + FastAPI)
 4. **VerifierAgent** — confirms all FIR fields present, sections are BNS not IPC, flags any missing details
 5. **FilingAssistantAgent** — detects Delhi + assault → **offline filing required** → step-by-step guide: what to bring, which counter to go to, how to get a copy of the FIR
 
-**Output**: Print-ready bilingual PDF + complete filing guide — ready to walk into Janakpuri Police Station.
+**Output**: Print-ready English PDF + complete bilingual filing guide — ready to walk into Janakpuri Police Station.
 
 ---
 
 ## Future Upgrades
 
 ### Near-term
-- **Voice input** — speak your case in Hindi; Whisper transcribes it
+- **Voice input** — ✅ implemented via Web Speech API (hi-IN / en-US, browser-native, no API cost)
 - **More state Rent Control Acts** — currently Delhi only; add Maharashtra, Karnataka, Tamil Nadu
 - **WhatsApp bot** — citizen sends a WhatsApp message, receives a PDF back (Twilio / Meta API)
 - **Document history** — localStorage-based history, no auth needed

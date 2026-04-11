@@ -69,6 +69,7 @@ async def query_laws(
     incident_type: str,
     description: str,
     top_k: int = 8,
+    where: dict | None = None,
 ) -> list[dict]:
     """
     Perform semantic search over the indexed Indian legal corpus.
@@ -80,6 +81,7 @@ async def query_laws(
         incident_type: Category of the legal matter (e.g. "cheque bounce", "theft").
         description:   Free-text description of the user's situation.
         top_k:         Maximum number of results to return (default 8).
+        where:         Optional ChromaDB metadata filter dict, e.g. {"act": "Bharatiya Nyaya Sanhita 2023"}.
 
     Returns:
         List of dicts, each with keys:
@@ -99,11 +101,15 @@ async def query_laws(
         query_string = f"{incident_type} {description}"
         n_results = min(top_k, count)
 
-        results = get_collection().query(
-            query_texts=[query_string],
-            n_results=n_results,
-            include=["documents", "metadatas", "distances"],
-        )
+        query_kwargs: dict = {
+            "query_texts": [query_string],
+            "n_results": n_results,
+            "include": ["documents", "metadatas", "distances"],
+        }
+        if where:
+            query_kwargs["where"] = where
+
+        results = get_collection().query(**query_kwargs)
 
         documents = results["documents"][0]
         metadatas = results["metadatas"][0]

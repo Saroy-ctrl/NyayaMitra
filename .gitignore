@@ -1,0 +1,35 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+dist/
+build/
+.venv/
+venv/
+env/
+
+# Environment variables — never commit secrets
+backend/.env
+.env
+
+# ChromaDB (large binary, rebuilt by seed_chroma.py)
+backend/chroma_db/
+
+# Generated PDFs
+backend/generated_pdfs/
+
+# Node
+node_modules/
+frontend/dist/
+frontend/.env
+frontend/.env.local
+
+# Claude Code
+.claude/settings.local.json
+
+# OS
+.DS_Store
+Thumbs.db

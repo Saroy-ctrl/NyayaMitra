@@ -80,6 +80,7 @@ When a task touches both frontend and backend (e.g., "wire up the SSE connection
 - [x] main.py — all 4 routes wired: POST /pipeline, GET /stream/{sid}, GET /download-pdf/{sid}, GET /health
 - [x] run_pipeline() — chains all 5 agents as BackgroundTask with SSE events at each step; accepts extracted_data param — if present, skips run_intake entirely and uses pre-collected chat data directly (fixes bracket placeholder bug)
 - [x] Frontend: all components + useSSE hook + API client + FilingAssistant component; api.js startPipeline() passes extracted_data as separate field; App.jsx passes extractedData directly (no longer serialized into description string)
+- [x] CaseInput.jsx: Web Speech API microphone button — Hindi (hi-IN) / English (en-US) based on selected lang; transcript appends to textarea; amber glow + red dot while recording; graceful degradation if browser unsupported; mic permission error banner auto-clears after 3s
 - [x] Frontend UI revamp: 5-view state machine (LANDING → SELECT_DOC → INPUT_CASE → PROCESSING → VIEW_RESULTS)
 - [x] LandingPage.jsx: hero (न्यायमित्र), stats, how-it-works, doc preview strip, dual CTAs
 - [x] ShaderBackground.jsx: WebGL MeshGradient via @paper-design/shaders-react, dark zinc/amber palette
@@ -88,9 +89,9 @@ When a task touches both frontend and backend (e.g., "wire up the SSE connection
 - [x] ProcessingPage.jsx: full-screen pipeline view with spinner
 - [x] ResultsPage.jsx: stacked draft + verifier + filing guide + PDF download
 - [x] All 15 Playwright MCP assertions verified in Chrome
-- [x] intake.py captures incident_time and parties[].contact; FIR mandatory fields: complainant address + time of complaint always required; IMEI only for phones/laptops; vehicle theft asks registration + chassis/engine number
-- [x] drafter.py: stolen items list for theft/robbery, assailant description, CCTV request, [bracketed placeholders]
-- [x] filing_assistant.py: all 5 doc types have dedicated handlers — FIR (10-state e-FIR routing, violence detection), consumer_complaint (_handle_consumer_complaint: e-Daakhil field mapping, required_documents, Groq prompt), legal_notice (_handle_legal_notice: RPAD guide, delivery-date deadline logic), cheque_bounce (_handle_cheque_bounce: Section 138 NI Act court procedure, 30-day/15-day deadline warnings), tenant_eviction (_handle_tenant_eviction: Rent Control Authority / Tis Hazari routing, grounds-based steps, illegal eviction warning)
+- [x] intake.py captures incident_time and parties[].contact; FIR mandatory fields: complainant address + time of complaint always required; IMEI only for phones/laptops; vehicle theft asks registration + chassis/engine number; ConversationalIntakeAgent anomaly detection (implausible items at public locations flagged before other questions)
+- [x] drafter.py: English-only output (no Hindi text or Devanagari anywhere in document); stolen items list for theft/robbery, assailant description, CCTV request, [bracketed placeholders]; current date/time auto-injected so time-of-complaint never a placeholder; only cites sections that directly apply (quality over quantity, hard max 4)
+- [x] filing_assistant.py: all 5 doc types have dedicated static handlers (no Groq calls except consumer_complaint) — FIR (_handle_fir: e-FIR state routing + in-person guide, eliminates JSON truncation bug), consumer_complaint (_handle_consumer_complaint: e-Daakhil field mapping, required_documents, Groq prompt), legal_notice (_handle_legal_notice: RPAD guide, delivery-date deadline logic), cheque_bounce (_handle_cheque_bounce: Section 138 NI Act court procedure, 30-day/15-day deadline warnings), tenant_eviction (_handle_tenant_eviction: Rent Control Authority / Tis Hazari routing, grounds-based steps, illegal eviction warning)
 - [x] groq_client.py: dual-model (70B for quality agents, 8B for utility agents), per-agent max_tokens
 - [x] backend/.env created (GROQ_API_KEY placeholder — fill in real key)
 - [ ] GROQ_API_KEY filled in backend/.env
@@ -134,8 +135,8 @@ backend/
   .env.example         — Template
   agents/
     intake.py          — IntakeAgent: extracts structured case JSON (incident_time, parties[].contact); ConversationalIntakeAgent (chat_intake): multi-turn intake with per-doc-type rules, anomaly detection (implausible items at public locations), IMEI asked only for phones/laptops [70B, 700/900 tokens]
-    research.py        — LegalResearchAgent: RAG query over ChromaDB, filters chunk_ IDs; FIR doc type hard-filters to BNS-only (where act=="Bharatiya Nyaya Sanhita 2023"), excludes BNSS procedural sections [8B, 600 tokens]
-    drafter.py         — DrafterAgent: dedicated template per doc type (5 types), bilingual legal document, stolen items, assailant description; section citations format = "Section X BNS 2023: Title" — no explanatory prose [70B, 3000 tokens]
+    research.py        — LegalResearchAgent: RAG query over ChromaDB, filters chunk_ IDs; FIR doc type hard-filters to BNS-only (where act=="Bharatiya Nyaya Sanhita 2023"), excludes BNSS procedural sections; hard max 4 sections, quality over quantity; section accuracy rules (BNS 304/305/317) [8B, 600 tokens]
+    drafter.py         — DrafterAgent: dedicated template per doc type (5 types), English-only document (no Hindi/Devanagari), stolen items, assailant description; current date/time auto-injected; section citations format = "Section X BNS 2023: Title" — no prose; only cites sections that directly apply [70B, 3000 tokens]
     verifier.py        — VerifierAgent: completeness check + reality rules: public place→no dwelling-house sections; clothing-only accused→no organised crime citations [70B, 700 tokens]
     filing_assistant.py — FilingAssistantAgent: dedicated handler per doc type — FIR (10-state e-FIR routing + violence gate), consumer_complaint (_handle_consumer_complaint: e-Daakhil field mapping + required_documents + dedicated Groq prompt), post guide for notices [8B, 900 tokens]
   services/
