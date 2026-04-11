@@ -11,7 +11,7 @@
  *   generateSessionId — creates a random UUID for the session
  */
 
-export const API_BASE = import.meta.env.VITE_API_URL ?? "http://localhost:8000";
+export const API_BASE = import.meta.env.VITE_API_URL ?? "http://localhost:8080";
 
 /**
  * Generate a random session ID (UUID v4).
@@ -28,8 +28,8 @@ export function generateSessionId() {
  * @param {string} sessionId
  * @returns {Promise<{ status: string, session_id: string }>}
  */
-export async function startPipeline(docType, description, sessionId, extractedData = null) {
-  const body = { doc_type: docType, description, session_id: sessionId };
+export async function startPipeline(docType, description, sessionId, extractedData = null, lang = "en") {
+  const body = { doc_type: docType, description, session_id: sessionId, language: lang };
   if (extractedData && Object.keys(extractedData).length > 0) {
     body.extracted_data = extractedData;
   }
