@@ -143,6 +143,116 @@ export default function LandingPage({ onGetStarted, onDemoClick }) {
         </div>
       </div>
 
+      {/* Pricing */}
+      <div className="space-y-6">
+        <div className="text-center space-y-1">
+          <p className="font-mono text-xs uppercase tracking-widest text-zinc-500">Pricing</p>
+          <h2 className="text-xl font-semibold text-zinc-100">Simple, transparent pricing</h2>
+          <p className="font-devanagari text-zinc-600 text-xs">सरल और पारदर्शी मूल्य निर्धारण</p>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          {/* Free Tier */}
+          <div className="rounded-xl border border-zinc-800 bg-zinc-900/80 backdrop-blur-sm p-6 space-y-4 flex flex-col">
+            <div>
+              <p className="font-mono text-xs uppercase tracking-widest text-zinc-500 mb-1">Free</p>
+              <p className="text-3xl font-bold text-zinc-100">&#8377;0</p>
+              <p className="text-xs text-zinc-500 mt-0.5">forever</p>
+            </div>
+            <ul className="space-y-2 flex-1">
+              <li className="flex items-start gap-2 text-sm text-zinc-300">
+                <span className="text-amber-500 mt-0.5">&#10003;</span>
+                Up to <strong>5 documents</strong> per month
+              </li>
+              <li className="flex items-start gap-2 text-sm text-zinc-300">
+                <span className="text-amber-500 mt-0.5">&#10003;</span>
+                All 5 document types
+              </li>
+              <li className="flex items-start gap-2 text-sm text-zinc-300">
+                <span className="text-amber-500 mt-0.5">&#10003;</span>
+                PDF download
+              </li>
+              <li className="flex items-start gap-2 text-sm text-zinc-300">
+                <span className="text-amber-500 mt-0.5">&#10003;</span>
+                Bilingual filing guide
+              </li>
+            </ul>
+            <div className="rounded-lg border border-zinc-700 px-4 py-2 text-center text-sm font-medium text-zinc-400">
+              Current Plan
+            </div>
+          </div>
+
+          {/* Premium Tier */}
+          <div className="rounded-xl border border-amber-500/50 bg-zinc-900/80 backdrop-blur-sm p-6 space-y-4 flex flex-col relative">
+            <div className="absolute -top-3 left-1/2 -translate-x-1/2">
+              <span className="rounded-full bg-amber-500 px-3 py-0.5 text-xs font-bold text-zinc-950">
+                POPULAR
+              </span>
+            </div>
+            <div>
+              <p className="font-mono text-xs uppercase tracking-widest text-amber-500 mb-1">Premium</p>
+              <p className="text-3xl font-bold text-zinc-100">&#8377;249</p>
+              <p className="text-xs text-zinc-500 mt-0.5">per month</p>
+            </div>
+            <ul className="space-y-2 flex-1">
+              <li className="flex items-start gap-2 text-sm text-zinc-300">
+                <span className="text-amber-500 mt-0.5">&#10003;</span>
+                Up to <strong>30 documents</strong> per month
+              </li>
+              <li className="flex items-start gap-2 text-sm text-zinc-300">
+                <span className="text-amber-500 mt-0.5">&#10003;</span>
+                Everything in Free
+              </li>
+              <li className="flex items-start gap-2 text-sm text-zinc-300">
+                <span className="text-amber-500 mt-0.5">&#10003;</span>
+                Priority processing
+              </li>
+              <li className="flex items-start gap-2 text-sm text-zinc-300">
+                <span className="text-amber-500 mt-0.5">&#10003;</span>
+                Document history &amp; re-downloads
+              </li>
+            </ul>
+            <button className="w-full rounded-lg bg-amber-500 hover:bg-amber-400 px-4 py-2 text-sm font-bold text-zinc-950 transition-colors duration-200">
+              Upgrade to Premium
+            </button>
+          </div>
+
+          {/* Human-In-The-Loop */}
+          <div className="rounded-xl border border-zinc-800 bg-zinc-900/80 backdrop-blur-sm p-6 space-y-4 flex flex-col">
+            <div>
+              <p className="font-mono text-xs uppercase tracking-widest text-zinc-500 mb-1">Add-on</p>
+              <p className="text-3xl font-bold text-zinc-100">&#8377;199</p>
+              <p className="text-xs text-zinc-500 mt-0.5">per document</p>
+            </div>
+            <ul className="space-y-2 flex-1">
+              <li className="flex items-start gap-2 text-sm text-zinc-300">
+                <span className="text-amber-500 mt-0.5">&#10003;</span>
+                <strong>Lawyer verification</strong> of your document
+              </li>
+              <li className="flex items-start gap-2 text-sm text-zinc-300">
+                <span className="text-amber-500 mt-0.5">&#10003;</span>
+                Human-in-the-loop review
+              </li>
+              <li className="flex items-start gap-2 text-sm text-zinc-300">
+                <span className="text-amber-500 mt-0.5">&#10003;</span>
+                Verified &amp; signed certificate
+              </li>
+              <li className="flex items-start gap-2 text-sm text-zinc-300">
+                <span className="text-amber-500 mt-0.5">&#10003;</span>
+                Available on any plan
+              </li>
+            </ul>
+            <button className="w-full rounded-lg border border-amber-500/40 hover:border-amber-500 px-4 py-2 text-sm font-medium text-amber-400 hover:text-amber-300 transition-colors duration-200">
+              Add to Document
+            </button>
+          </div>
+        </div>
+
+        <p className="text-center font-mono text-xs text-zinc-600">
+          * Demo mode &mdash; no actual payment is processed
+        </p>
+      </div>
+
       {/* Document types preview strip */}
       <div className="space-y-4">
         <div className="text-center space-y-1">

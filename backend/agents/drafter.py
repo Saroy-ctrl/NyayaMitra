@@ -29,7 +29,7 @@ _DOC_TYPE_INSTRUCTIONS: dict[str, str] = {
     "fir": """Format as First Information Report with:
 - Police Station, District, State (use location from case)
 - Date of complaint (use today's date); Time of complaint (use the current time — do NOT leave as placeholder)
-- Complainant details: Name, Address (ask user if not provided), Contact Number (use parties[].contact if available, else write [Complainant's Contact Number])
+- Complainant details: Name (use parties[0].name), Address and Contact Number (use parties[0].contact — it contains both the phone number and residential address combined; split them appropriately; if not available write [Complainant's Address] and [Complainant's Contact Number])
 - Accused details: Name (Unknown if not identified), physical description if mentioned (approximate age, height, build, clothing colour, any distinguishing features), last seen direction if mentioned
 - Incident description: exact date, exact time (use incident_time if provided, else [Time of the incident]), exact location, detailed narrative of what happened
 - If the incident involves theft, robbery, or snatching: include a numbered "List of Stolen/Missing Items" section listing items the complainant reported stolen. For each item include: description, approximate value if mentioned, any identifying details (IMEI, serial number etc.). If specific items not stated, use placeholders: [Cash amount], [Mobile phone - brand/model/IMEI], [Identity documents - Aadhaar, PAN etc.], [Bank cards], [Other valuables]

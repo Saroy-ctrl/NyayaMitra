@@ -252,7 +252,7 @@ export default function CaseInput({
         setIsTyping(false);
       }
     },
-    [messages, docType, sessionId]
+    [messages, docType, sessionId, lang]
   );
 
   function handleSend() {

@@ -29,6 +29,28 @@ _LANG_NAMES: dict[str, str] = {
 }
 
 
+def _extract_json_obj(raw: str) -> str:
+    """Find the first complete {...} JSON object in raw LLM output."""
+    raw = raw.strip()
+    # Strip markdown code fences
+    if raw.startswith("```"):
+        lines = raw.splitlines()
+        end = next((i for i in range(len(lines) - 1, 0, -1) if lines[i].strip() == "```"), None)
+        raw = "\n".join(lines[1:end] if end else lines[1:]).strip()
+    start = raw.find("{")
+    if start == -1:
+        return raw
+    depth = 0
+    for i, ch in enumerate(raw[start:], start):
+        if ch == "{":
+            depth += 1
+        elif ch == "}":
+            depth -= 1
+            if depth == 0:
+                return raw[start : i + 1]
+    return raw[start:]
+
+
 async def _translate_steps(
     steps: list[dict],
     warnings: list[str],
@@ -43,46 +65,54 @@ async def _translate_steps(
     lang_name = _LANG_NAMES.get(lang, "Hindi")
     step_texts = [s.get("en", "") for s in steps]
 
+    # Numbered list format is more reliably returned by 8B models than raw JSON arrays
+    steps_block = "\n".join(f"{i+1}. {t}" for i, t in enumerate(step_texts))
+    warnings_block = "\n".join(f"{i+1}. {w}" for i, w in enumerate(warnings))
+
     prompt = (
-        f"Translate the following legal filing guide items into {lang_name}.\n"
+        f"Translate the following legal filing guide items to {lang_name}.\n"
         "Rules:\n"
-        "- Keep URLs, portal names, section numbers, and proper nouns in English\n"
-        "- Translate all other text naturally\n"
-        f'- Return ONLY valid JSON: {{"steps": ["...", "..."], "warnings": ["...", "..."]}}\n\n'
-        f"Steps: {json.dumps(step_texts)}\n"
-        f"Warnings: {json.dumps(warnings)}"
+        "- Keep URLs, portal names, law section numbers, and proper nouns in English\n"
+        "- Translate everything else naturally into " + lang_name + "\n"
+        "- Return ONLY a JSON object with no extra text. Use this exact structure:\n"
+        '{"steps": ["translated step 1", "translated step 2", ...], '
+        '"warnings": ["translated warning 1", ...]}\n\n'
+        f"STEPS TO TRANSLATE:\n{steps_block}\n\n"
+        f"WARNINGS TO TRANSLATE:\n{warnings_block}"
     )
 
     try:
         raw = await call_groq(
-            system="You are a precise legal translator. Return only valid JSON, no commentary.",
+            system=(
+                "You are a professional legal translator. "
+                "Output ONLY a valid JSON object, no markdown, no commentary."
+            ),
             user=prompt,
-            model="llama-3.1-8b-instant",
+            model="llama-3.3-70b-versatile",   # 70B is far more reliable for non-Latin scripts
             temperature=0.1,
-            max_tokens=1500,
+            max_tokens=2000,
         )
-        # Strip markdown code fences if present
-        cleaned = raw.strip()
-        if cleaned.startswith("```"):
-            cleaned = re.sub(r"^```[a-z]*\n?", "", cleaned)
-            cleaned = re.sub(r"\n?```$", "", cleaned)
 
+        cleaned = _extract_json_obj(raw)
         parsed = json.loads(cleaned)
-        translated_steps = parsed.get("steps", step_texts)
+        translated_steps = parsed.get("steps", [])
         translated_warnings = parsed.get("warnings", warnings)
+
+        if not translated_steps:
+            logger.warning("Translation returned empty steps list for lang=%s", lang)
+            return steps, warnings
 
         # Merge translated text back as `regional` key on each step
         result_steps = []
         for i, step in enumerate(steps):
             new_step = dict(step)
-            if i < len(translated_steps):
-                new_step["regional"] = translated_steps[i]
+            new_step["regional"] = translated_steps[i] if i < len(translated_steps) else step.get("en", "")
             result_steps.append(new_step)
 
         return result_steps, translated_warnings
 
     except Exception as exc:
-        logger.warning("Translation to %s failed, using English fallback: %s", lang_name, exc)
+        logger.warning("Translation to %s failed (%s), using English fallback", lang_name, exc)
         return steps, warnings
 
 

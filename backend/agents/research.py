@@ -68,6 +68,99 @@ CRITICAL SECTION ACCURACY RULES — apply these before selecting any section:
 """
 
 
+_SYSTEM_PROMPT_LEGAL_NOTICE = """You are an Indian law expert. Given a civil dispute case and relevant law sections, select the most applicable sections for a legal notice.
+
+Return ONLY valid JSON array:
+[
+  {
+    "section": "section number",
+    "act": "full act name",
+    "title": "section title or description",
+    "reason": "one sentence why this section applies to the case"
+  }
+]
+
+Rules:
+- Include ONLY sections that directly and clearly apply to this specific dispute — if unsure, omit
+- Quality over quantity: 1-2 accurate sections is better than 6 vague ones
+- Hard maximum: 4 sections
+- Prefer BNS 2023 over IPC 1860 for any criminal element; prefer BNSS 2023 over CrPC 1973
+- Never cite IPC or CrPC sections
+- If a section identifier looks like 'chunk_N', extract the real section number from the text or skip the entry
+- Return ONLY JSON array, no explanation
+"""
+
+_SYSTEM_PROMPT_CONSUMER_COMPLAINT = """You are an Indian consumer law expert. Given a consumer complaint case and relevant law sections, select the most applicable sections from the Consumer Protection Act 2019.
+
+Return ONLY valid JSON array:
+[
+  {
+    "section": "section number",
+    "act": "full act name",
+    "title": "section title or description",
+    "reason": "one sentence why this section applies to the case"
+  }
+]
+
+Rules:
+- Include ONLY sections that directly and clearly apply to this specific complaint — if unsure, omit
+- Quality over quantity: 1-2 accurate sections is better than 6 vague ones
+- Hard maximum: 4 sections
+- Prefer sections from Consumer Protection Act 2019 — this is the governing statute for consumer disputes
+- Key sections to consider: Section 2 (definitions of defect/deficiency/unfair trade practice), Section 35 (complaint jurisdiction), Section 38 (complaint procedure), Section 39 (relief available)
+- If a section identifier looks like 'chunk_N', extract the real section number from the text or skip the entry
+- Return ONLY JSON array, no explanation
+"""
+
+_SYSTEM_PROMPT_CHEQUE_BOUNCE = """You are an Indian law expert specialising in negotiable instruments. Given a cheque dishonour case and relevant law sections, select the most applicable sections.
+
+Return ONLY valid JSON array:
+[
+  {
+    "section": "section number",
+    "act": "full act name",
+    "title": "section title or description",
+    "reason": "one sentence why this section applies to the case"
+  }
+]
+
+Rules:
+- Include ONLY sections that directly and clearly apply to this specific case — if unsure, omit
+- Quality over quantity: 1-2 accurate sections is better than 6 vague ones
+- Hard maximum: 4 sections
+- The Negotiable Instruments Act 1881 is UNCHANGED — cite it as-is, do not substitute BNS sections
+- Section 138 NI Act is the primary section for dishonour of cheque due to insufficient funds
+- Section 139 NI Act covers the presumption in favour of the holder
+- Section 142 NI Act governs the cognisance of offences under Section 138
+- Statutory deadlines: demand notice must be sent within 30 days of dishonour; complaint must be filed within 30 days of expiry of the 15-day notice period
+- If a section identifier looks like 'chunk_N', extract the real section number from the text or skip the entry
+- Return ONLY JSON array, no explanation
+"""
+
+_SYSTEM_PROMPT_TENANT_EVICTION = """You are an Indian property law expert. Given a tenant eviction case and relevant law sections, select the most applicable sections.
+
+Return ONLY valid JSON array:
+[
+  {
+    "section": "section number",
+    "act": "full act name",
+    "title": "section title or description",
+    "reason": "one sentence why this section applies to the case"
+  }
+]
+
+Rules:
+- Include ONLY sections that directly and clearly apply to this specific eviction matter — if unsure, omit
+- Quality over quantity: 1-2 accurate sections is better than 6 vague ones
+- Hard maximum: 4 sections
+- For properties in Delhi: prefer Delhi Rent Control Act 1958 sections (Section 14 for eviction grounds)
+- For properties outside Delhi or where Rent Control Act does not apply: use Transfer of Property Act 1882 (Section 106 for notice to quit, Section 111 for determination of lease)
+- Do NOT cite BNS/BNSS for civil eviction matters unless there is an explicit criminal element (e.g. forcible dispossession)
+- If a section identifier looks like 'chunk_N', extract the real section number from the text or skip the entry
+- Return ONLY JSON array, no explanation
+"""
+
+
 def _strip_code_fences(raw: str) -> str:
     """Remove markdown code fences if present."""
     raw = raw.strip()
@@ -99,8 +192,27 @@ async def run_research(incident_json: dict[str, Any], session_id: str, doc_type:
     if not doc_type:
         doc_type = incident_json.get("doc_type_confirmed", "")
 
-    is_fir = doc_type == "fir"
-    system_prompt = _SYSTEM_PROMPT_FIR if is_fir else _SYSTEM_PROMPT_DEFAULT
+    _DOC_TYPE_CONFIG: dict[str, tuple] = {
+        "fir": (
+            _SYSTEM_PROMPT_FIR,
+            {"act": "Bharatiya Nyaya Sanhita 2023"},
+        ),
+        "consumer_complaint": (
+            _SYSTEM_PROMPT_CONSUMER_COMPLAINT,
+            {"act": "Consumer Protection Act 2019"},
+        ),
+        "cheque_bounce": (
+            _SYSTEM_PROMPT_CHEQUE_BOUNCE,
+            {"act": "Negotiable Instruments Act 1881"},
+        ),
+        "tenant_eviction": (
+            _SYSTEM_PROMPT_TENANT_EVICTION,
+            {"act": {"$in": ["Transfer of Property Act 1882", "Delhi Rent Control Act 1958"]}},
+        ),
+    }
+    system_prompt, act_filter = _DOC_TYPE_CONFIG.get(
+        doc_type, (_SYSTEM_PROMPT_LEGAL_NOTICE, None)
+    )
 
     try:
         # Build query components from incident_json
@@ -109,9 +221,6 @@ async def run_research(incident_json: dict[str, Any], session_id: str, doc_type:
         sequence = incident_json.get("sequence_of_events", [])
         description_parts = list(key_claims) + list(sequence)
         description = " ".join(str(p) for p in description_parts)
-
-        # For FIR: filter ChromaDB to BNS 2023 sections only (substantive offence law)
-        act_filter = {"act": "Bharatiya Nyaya Sanhita 2023"} if is_fir else None
 
         # Query ChromaDB
         chunks = await query_laws(incident_type, description, top_k=10, where=act_filter)

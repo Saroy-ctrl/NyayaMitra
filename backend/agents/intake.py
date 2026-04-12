@@ -212,6 +212,24 @@ PROCESSING STEPS:
 6. If cheque bounce return memo is >30 days old: warn about expired legal window.
 7. If all mandatory facts collected: set is_complete=true, tell user you are ready to draft. WRITE THE REPLY IN {lang_label} ONLY.
 
+extracted_data MUST use exactly this structure (matches the pipeline's intake format):
+{{
+  "incident_type": "brief type e.g. theft / cheque_bounce / consumer_dispute",
+  "parties": [
+    {{"name": "Full name", "role": "complainant", "contact": "phone number AND address combined, e.g. '9876543210, 123 Main Street, Delhi 110001'"}},
+    {{"name": "Name or Unknown", "role": "accused", "contact": "details if known or null"}}
+  ],
+  "dates": ["list of relevant dates mentioned"],
+  "incident_time": "time of incident e.g. '22:00' or null",
+  "location": "place where incident occurred",
+  "sequence_of_events": ["ordered list of what happened"],
+  "key_claims": ["main legal claims or grievances"],
+  "doc_type_confirmed": "{doc_type}",
+  "summary": "one sentence summary in English"
+}}
+
+CRITICAL: The complainant's full name MUST go in parties[0].name. Their phone number AND residential address MUST go in parties[0].contact (combined). Never use flat keys like complainant_name or complainant_address — always use the parties[] array.
+
 OUTPUT (JSON ONLY, no other text):
 {{"extracted_data": {{}}, "is_complete": false, "missing_fields": ["example"], "agent_reply": "your reply here"}}"""
 

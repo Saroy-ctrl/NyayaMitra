@@ -69,9 +69,7 @@ export default function FilingAssistant({ data, lang = "en" }) {
             onClick={() => setShowHindi((v) => !v)}
             className="shrink-0 text-xs font-mono border border-zinc-700 rounded-lg px-3 py-1.5 text-zinc-400 hover:text-zinc-200 hover:border-zinc-500 transition-colors"
           >
-            {lang !== "en" && lang !== "hi"
-            ? (showHindi ? "REGIONAL" : "EN")
-            : (showHindi ? "EN" : "हिं")}
+            {showHindi ? "HIDE" : "हिं"}
           </button>
         )}
       </div>
@@ -110,8 +108,10 @@ export default function FilingAssistant({ data, lang = "en" }) {
             <ol className="space-y-3">
               {steps.map((step, i) => {
                 const isRegional = lang !== "en" && lang !== "hi";
+                // Regional lang: main = regional translation (if available), else English
+                // Alt text = Hindi (always a useful reference; hidden until toggled)
                 const mainText = isRegional && step.regional ? step.regional : step.en;
-                const altText = isRegional ? step.en : step.hi;
+                const altText = step.hi;
                 return (
                   <li key={i} className="flex gap-3">
                     <span className="shrink-0 h-6 w-6 rounded-full bg-zinc-800 border border-zinc-700 flex items-center justify-center text-xs font-bold text-amber-400">

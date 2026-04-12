@@ -133,6 +133,11 @@ export default function App() {
               </div>
             </div>
           </button>
+          <div className="flex items-center gap-3">
+            <span className="hidden sm:inline-flex items-center gap-1.5 rounded-full border border-amber-500/40 bg-amber-500/10 px-3 py-1 text-xs font-medium text-amber-400">
+              <span className="h-1.5 w-1.5 rounded-full bg-amber-400 animate-pulse" />
+              Premium &bull; 12/30 Docs Used
+            </span>
           <select
             value={selectedLang}
             onChange={(e) => setSelectedLang(e.target.value)}
@@ -142,6 +147,7 @@ export default function App() {
               <option key={l.code} value={l.code}>{l.label}</option>
             ))}
           </select>
+          </div>
         </div>
       </header>
 

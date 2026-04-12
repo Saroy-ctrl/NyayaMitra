@@ -1,7 +1,7 @@
 # NyayaMitra — Hackathon Overview
 
 > **न्यायमित्र** = *Justice Friend*
-> AI-powered legal document drafting for every Indian citizen — in Hindi or English, for free.
+> AI-powered legal document drafting for every Indian citizen — in Hindi, English, Bengali, Marathi, or Tamil, for free.
 
 ---
 
@@ -22,7 +22,7 @@ Result: Snatching victims don't file FIRs. Consumer fraud victims swallow the lo
     
 ## The Solution — NyayaMitra
 
-A user describes their situation in **plain Hindi or Hinglish** — by typing or speaking. NyayaMitra produces a **complete, print-ready, legally correct English document** in under 30 seconds — citing the right law, with the right sections, at zero cost.
+A user describes their situation in **plain Hindi, Hinglish, Bengali, Marathi, Tamil, or English** — by typing or speaking. NyayaMitra produces a **complete, print-ready, legally correct English document** in under 30 seconds — citing the right law, with the right sections, at zero cost. The filing guide and intake chat respond in the user's selected language.
 
 ### What It Generates
 
@@ -45,6 +45,7 @@ User types in Hindi/English
 ┌─────────────────────────────────────────────────────────────┐
 │  STEP 1 — IntakeAgent                          [Llama 3.3 70B] │
 │  Multi-turn conversational chat collects all mandatory facts  │
+│  Replies in user's selected language (EN/HI/BN/MR/TA)        │
 │  FIR requires: name, address, contact, date, time, location  │
 │  IMEI only for phones/laptops; vehicle → reg + chassis no.   │
 │  Anomaly detection: flags implausible items at public spaces  │
@@ -106,8 +107,8 @@ User types in Hindi/English
 │  Tenant Eviction → Rent Control Authority / Civil Court,     │
 │         Delhi Tis Hazari routing, grounds-based procedure,   │
 │         illegal eviction warning (BNS 2023)                  │
-│  Generates numbered bilingual steps for each path            │
-│  Output: portal URL + steps + field mapping +                │
+│  Steps translated into user's language via Groq              │
+│  Output: portal URL + steps (EN + regional) + field mapping +│
 │          required_documents + warnings (all 5 doc types)     │
 └────────────────────────┬────────────────────────────────────┘
                          │
@@ -127,15 +128,23 @@ Every step **streams its status live** to the frontend via **Server-Sent Events 
 | **Hiring a lawyer** | Expensive, slow, inaccessible in rural areas |
 | **Generic ChatGPT/Gemini** | No Indian legal corpus, cites old IPC sections, no structured output, no PDF, no filing guide |
 | **Government legal aid portals** | Static form-fills, no NLP, English-only, no AI assistance |
-| **NyayaMitra** | Free, Hindi-first, voice input, 5-agent pipeline, RAG over current Indian law (BNS 2023), clean English PDF, bilingual filing guide, guides user all the way to actual filing |
+| **NyayaMitra** | Free, 5-language support (EN/HI/BN/MR/TA), voice input, 5-agent pipeline, RAG over current Indian law (BNS 2023), clean English PDF, multilingual filing guide, guides user all the way to actual filing |
 
 ### The BNS/BNSS Advantage
 
 On **1 July 2024**, India replaced three colonial-era laws with new codes. **Most AI tools, websites, and even some lawyers still cite the old IPC**. NyayaMitra's RAG corpus is built entirely from the **new BNS/BNSS/BSA 2023 texts** — so every document it generates is legally current. A document citing repealed IPC sections can be rejected or challenged in court.
 
+### 5-Language Support
+
+NyayaMitra supports **English, Hindi, Bengali (বাংলা), Marathi (मराठी), and Tamil (தமிழ்)**. The language selector in the header sets the active language for the entire session:
+- The intake chatbot greets and responds in the selected language
+- All UI strings (buttons, labels, headings) switch to the selected language
+- Filing guide steps and warnings are translated into the selected language via Groq at runtime
+- Voice input uses the matching Web Speech API locale per language (`hi-IN`, `bn-IN`, `mr-IN`, `ta-IN`, `en-US`)
+
 ### Voice-First Accessibility
 
-Users can speak their situation in Hindi or English directly into the chat — no typing required. The browser's native Web Speech API transcribes speech in real time and appends it to the message box. This makes NyayaMitra accessible to users with low digital literacy or those more comfortable speaking than typing.
+Users can speak their situation directly into the chat — no typing required. The browser's native Web Speech API transcribes speech in real time and appends it to the message box, using the correct locale for whichever of the 5 languages is selected. This makes NyayaMitra accessible to users with low digital literacy or those more comfortable speaking than typing.
 
 ### End-to-End — Not Just a Draft
 
@@ -160,25 +169,39 @@ Frontend (React 18 + Vite + Tailwind + @paper-design/shaders-react)
     ├── Visual layer:
     │   ShaderBackground (WebGL MeshGradient, zinc/amber)
     │   SpaceParticles (canvas, landing only)
+    │   Indian emblem watermark on hero (opacity 0.15, screen blend)
     │   Animations: fadeInUp, cardReveal stagger, amberGlow pipeline, float headline
     │
+    ├── i18n (lib/i18n.js — no external library):
+    │   LANGUAGES: 5 language configs with Web Speech API locale codes
+    │   STRINGS: all UI labels translated into all 5 languages
+    │   WELCOME_MESSAGES: language-specific intake greeting
+    │   Language selector dropdown in header; lang prop threads through all views
+    │
     ├── Voice input (Web Speech API — no external API):
-    │   Mic button in chat toolbar, hi-IN / en-US based on selected language
+    │   Mic button in chat toolbar, locale matches selected language
     │   Appends transcript to textarea, amber glow + red dot while recording
     │   Graceful degradation: hidden if browser unsupported (Firefox/Safari)
     │
-    │  POST /pipeline
+    ├── Freemium UI (LandingPage pricing section):
+    │   Free tier: ₹0, 5 docs/month
+    │   Premium tier: ₹249/month, 30 docs, priority processing, doc history
+    │   Add-on: ₹199/document — lawyer verification (human-in-the-loop)
+    │   PaymentModal.jsx: simulated UPI/card payment flow (demo mode)
+    │   ResultsPage: "Verify — ₹199" upsell card opens PaymentModal
+    │
+    │  POST /pipeline  (now includes lang field)
     │  GET  /stream/{session_id}  ← SSE real-time updates
     │  GET  /download-pdf/{session_id}
     ▼
 Backend (Python 3.12 + FastAPI)
     │
     ├── agents/
-    │   ├── intake.py            ← Llama 3.3 70B  (JSON extraction)
+    │   ├── intake.py            ← Llama 3.3 70B  (JSON extraction; replies in user's lang)
     │   ├── research.py          ← Llama 3.1 8B   (RAG + re-ranking)
     │   ├── drafter.py           ← Llama 3.3 70B  (document generation)
     │   ├── verifier.py          ← Llama 3.3 70B  (quality check)
-    │   └── filing_assistant.py  ← Llama 3.1 8B   (portal routing + steps)
+    │   └── filing_assistant.py  ← Llama 3.1 8B   (portal routing + Groq step translation)
     │
     ├── services/
     │   ├── chroma_service.py   ← 1,423 law sections, cosine similarity
@@ -219,17 +242,19 @@ Backend (Python 3.12 + FastAPI)
 ## Future Upgrades
 
 ### Near-term
-- **Voice input** — ✅ implemented via Web Speech API (hi-IN / en-US, browser-native, no API cost)
+- **Voice input** — ✅ implemented via Web Speech API (hi-IN / bn-IN / mr-IN / ta-IN / en-US, browser-native, no API cost)
+- **Multi-language** — ✅ implemented: EN, HI, BN, MR, TA with full i18n + Groq-translated filing guides
+- **Lawyer review add-on** — ✅ UI implemented (PaymentModal, ₹199 flow); backend integration pending
 - **More state Rent Control Acts** — currently Delhi only; add Maharashtra, Karnataka, Tamil Nadu
 - **WhatsApp bot** — citizen sends a WhatsApp message, receives a PDF back (Twilio / Meta API)
 - **Document history** — localStorage-based history, no auth needed
 
 ### Medium-term
-- **Lawyer review marketplace** — ₹99 advocate review before download
-- **Multi-language** — Tamil, Telugu, Marathi, Bengali via IndicTrans2
+- **Freemium backend enforcement** — currently UI-only; wire Premium/Free limits to actual session tracking
 - **Case status tracker** — save FIR/case number, get court updates via eCourts API
 - **More e-FIR portals** — expand FilingAssistant to all 28 states + 8 UTs
 - **e-Daakhil auto-fill** — browser extension that injects pre-filled values directly into the portal form
+- **Telugu support** — 6th language via IndicTrans2
 
 ### Long-term / Research
 - **Judgment RAG** — index Supreme Court + High Court judgments for precedent citation
@@ -247,7 +272,7 @@ Backend (Python 3.12 + FastAPI)
 | PDF downloads | Document was useful |
 | Filing guide clicks (portal link) | End-to-end completion |
 | Document type breakdown | Which legal problems are most common |
-| User language ratio | Hindi vs English adoption |
+| User language ratio | EN/HI/BN/MR/TA adoption breakdown |
 | Geographic spread | Rural vs urban penetration |
 
 ---
@@ -262,7 +287,8 @@ Backend (Python 3.12 + FastAPI)
 | Embeddings | all-MiniLM-L6-v2 (local, no API cost) |
 | Backend | Python 3.12, FastAPI, ReportLab |
 | Frontend | React 18, Vite, Tailwind CSS, @paper-design/shaders-react |
-| UI Effects | WebGL MeshGradient shader, canvas particles, CSS keyframe animations |
+| i18n | Plain JS `i18n.js` — 5 languages, no external library |
+| UI Effects | WebGL MeshGradient shader, canvas particles, emblem watermark, CSS keyframe animations |
 | Streaming | Server-Sent Events (SSE) |
 | Deploy | Railway (backend) + Vercel (frontend) |
 | Cost | **₹0 / $0 — entirely free tier** |
