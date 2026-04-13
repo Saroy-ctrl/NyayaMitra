@@ -1,7 +1,7 @@
 # NyayaMitra — Hackathon Overview
 
 > **न्यायमित्र** = *Justice Friend*
-> AI-powered legal document drafting for every Indian citizen — in Hindi or English, for free.
+> AI-powered legal document drafting for every Indian citizen — in English, Hindi , Tamil, Telugu, Marathi, Bengali, for free.
 
 ---
 
@@ -22,7 +22,7 @@ Result: Snatching victims don't file FIRs. Consumer fraud victims swallow the lo
     
 ## The Solution — NyayaMitra
 
-A user describes their situation in **plain Hindi or Hinglish** — by typing or speaking. NyayaMitra produces a **complete, print-ready, legally correct English document** in under 30 seconds — citing the right law, with the right sections, at zero cost.
+A user describes their situation in **plain Hindi ,Tamil, Telugu, Marathi, Bengali, English** — by typing or speaking. NyayaMitra produces a **complete, print-ready, legally correct English document** in under 30 seconds — citing the right law, with the right sections, at zero cost.
 
 ### What It Generates
 
@@ -219,14 +219,12 @@ Backend (Python 3.12 + FastAPI)
 ## Future Upgrades
 
 ### Near-term
-- **Voice input** — ✅ implemented via Web Speech API (hi-IN / en-US, browser-native, no API cost)
 - **More state Rent Control Acts** — currently Delhi only; add Maharashtra, Karnataka, Tamil Nadu
 - **WhatsApp bot** — citizen sends a WhatsApp message, receives a PDF back (Twilio / Meta API)
-- **Document history** — localStorage-based history, no auth needed
+
 
 ### Medium-term
 - **Lawyer review marketplace** — ₹99 advocate review before download
-- **Multi-language** — Tamil, Telugu, Marathi, Bengali via IndicTrans2
 - **Case status tracker** — save FIR/case number, get court updates via eCourts API
 - **More e-FIR portals** — expand FilingAssistant to all 28 states + 8 UTs
 - **e-Daakhil auto-fill** — browser extension that injects pre-filled values directly into the portal form
