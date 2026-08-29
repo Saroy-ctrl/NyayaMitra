@@ -43,7 +43,7 @@ User types in Hindi/English
         │
         ▼
 ┌─────────────────────────────────────────────────────────────┐
-│  STEP 1 — IntakeAgent                          [Llama 3.3 70B] │
+│  STEP 1 — IntakeAgent                         [Llama 3.3 70B] │
 │  Multi-turn conversational chat collects all mandatory facts  │
 │  FIR requires: name, address, contact, date, time, location  │
 │  IMEI only for phones/laptops; vehicle → reg + chassis no.   │
